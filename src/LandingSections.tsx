@@ -1,69 +1,44 @@
 import { useState } from 'react';
 import GlassButton from './GlassButton';
-import { tokenLogo } from './marketData';
+import { equityAssets, markets as marketData, tokenLogo } from './marketData';
 import './LandingSections.css';
 
-const markets = [
-  { symbol: 'NVDA', pair: 'USDG', limit: '62.5%', age: '1h 30m' },
-  { symbol: 'SPY', pair: 'USDG', limit: '62.5%', age: '18h 07m' },
-  { symbol: 'TSLA', pair: 'USDG', limit: '62.5%', age: '57m' },
+const featured = [
+  { symbol: 'SPY', pair: 'USDG', supplied: '$21.7K', supply: '0.00%', borrowed: '$555', borrow: '0.04%', age: '4h 17m' },
+  { symbol: 'NVDA', pair: 'USDG', supplied: '$13.1K', supply: '0.00%', borrowed: '$39', borrow: '0.03%', age: '11h 59m' },
+  { symbol: 'TSLA', pair: 'USDG', supplied: '$13.1K', supply: '0.00%', borrowed: '$2', borrow: '0.03%', age: '6h 17m' },
+  { symbol: 'CRWV', pair: 'USDG', supplied: '$125', supply: '0.00%', borrowed: '$0', borrow: '0.09%', age: '48m' },
+  { symbol: 'NBIS', pair: 'USDG', supplied: '$125', supply: '0.00%', borrowed: '$0', borrow: '0.07%', age: '25m' },
 ];
-
 const steps = [
-  { number: '01', title: 'Choose a market', copy: 'Each collateral asset has its own borrow asset, oracle and liquidation limit.' },
-  { number: '02', title: 'Supply or borrow', copy: 'Lend stablecoins to earn, or post tokenized shares and borrow against them.' },
-  { number: '03', title: 'Keep the context', copy: 'Rates, loan limit and the age of the underlying price stay in the same view.' },
+  ['Pick an isolated market', 'A market pairs one collateral token with a stablecoin, its own price feed and liquidation limit. Each market is considered separately.'],
+  ['Post collateral', 'Your tokenized shares form the collateral for this position. The chosen market limit determines how much can be borrowed.'],
+  ['Draw stablecoins', 'Borrow against the collateral up to the market limit. The amount you owe and the applicable rate remain visible together.'],
+  ['Watch the price age', 'The underlying exchange can close while the position stays open. Prisma shows the age of its last price update beside the market.'],
 ];
-
-function MarketTable() {
-  return <div className="editorial-table" aria-label="Illustrative Prisma markets">
-    <div className="editorial-table__header"><span>MARKET</span><span>LOAN LIMIT</span><span>PRICE AGE</span><span aria-hidden="true">↗</span></div>
-    {markets.map((market) => <a className="editorial-table__row" href="#/markets" key={market.symbol}>
-      <span className="editorial-table__asset"><img src={tokenLogo(market.symbol)} alt=""/><span><strong>{market.symbol}</strong><small>vs {market.pair}</small></span></span>
-      <span>{market.limit}</span><span className="editorial-table__age">{market.age}</span><span aria-hidden="true">↗</span>
-    </a>)}
-    <div className="editorial-table__note">ILLUSTRATIVE SNAPSHOT / EXPLORE THE FULL MARKET LIST IN THE APP</div>
-  </div>;
+function MarketPreview() {
+  return <div className="ch-market-ui" aria-label="Illustrative market table"><div className="ch-market-head"><span>ASSET</span><span>TOTAL SUPPLIED ↓</span><span>SUPPLY APY</span><span>TOTAL BORROWED</span><span>BORROW APY</span><span>PRICE AGE</span></div>{featured.map((m,i)=><div className="ch-market-row" key={m.symbol} style={{'--row':i} as React.CSSProperties}><span className="ch-market-asset"><img src={tokenLogo(m.symbol)} alt=""/><span><b>{m.symbol}</b><small>vs {m.pair} · 62.5% limit</small></span></span><span>{m.supplied}</span><span className="ch-teal">{m.supply}</span><span>{m.borrowed}</span><span>{m.borrow}</span><span className="ch-red">{m.age}</span></div>)}</div>;
 }
-
-function PriceTimeline() {
-  return <div className="editorial-timeline reveal" role="img" aria-label="Illustrative weekend price gap: the price can remain unchanged while a loan continues accruing">
-    <div className="editorial-timeline__top"><span>THE UNDERLYING PRICE</span><span>FRIDAY CLOSE → MONDAY OPEN</span></div>
-    <svg viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true">
-      <path className="timeline-grid" d="M0 52H1000 M0 135H1000 M0 218H1000 M0 300H1000"/>
-      <path className="timeline-before" d="M0 186 50 170 110 185 165 138 225 151 277 120 335 137"/>
-      <path className="timeline-held" d="M335 137H760V240"/>
-      <path className="timeline-after" d="M760 240 810 229 865 246 920 211 1000 228"/>
-      <circle cx="335" cy="137" r="6" fill="#f2eee7"/>
-      <circle cx="760" cy="240" r="7" fill="#ff693a"/>
-    </svg>
-    <div className="editorial-timeline__band"><span>65 HOURS</span><small>ONE PRICE, UNCHANGED</small></div>
-    <div className="editorial-timeline__days"><span>FRI</span><span>SAT</span><span>SUN</span><span>MON</span></div>
-  </div>;
-}
-
-export default function LandingSections() {
-  const [borrow, setBorrow] = useState(400);
-  const liquidationValue = Math.round(borrow / .625);
-  const priceCushion = Math.max(0, 100 - Math.round(liquidationValue / 10));
-  return <main className="prisma-story" id="about">
-    <section className="editorial-opening reveal">
-      <div className="editorial-kicker"><span>01 / THE MARKET</span><span>PRISMA</span></div>
-      <div className="editorial-opening__body"><h2>One market.<br/><em>One clear risk.</em></h2><p>An isolated market brings the asset, stablecoin, oracle and loan limit together. You see the terms of a position before you enter it.</p></div>
-      <div className="editorial-opening__baseline"><span>COLLATERAL</span><span>ORACLE</span><span>LIMIT</span><span>LOAN</span></div>
-    </section>
-
-    <section className="editorial-market reveal" aria-labelledby="markets-heading">
-      <div className="editorial-market__aside"><span className="editorial-index">A / 03</span><h3 id="markets-heading">The whole market<br/>in one view.</h3><p>Every row is a separate market. Each has its own limit and the age of the price behind it.</p><a href="#/markets" className="editorial-text-link">VIEW ALL MARKETS <span>↗</span></a></div>
-      <MarketTable/>
-    </section>
-
-    <section className="editorial-steps" aria-labelledby="steps-heading"><div className="editorial-steps__head reveal"><span className="editorial-index">B / 03</span><h2 id="steps-heading">A position, from<br/>start to finish.</h2><p>Everything needed to understand a loan stays in the same place.</p></div><div className="editorial-steps__list">{steps.map((step) => <article className="editorial-step reveal" key={step.number}><span>{step.number}</span><h3>{step.title}</h3><p>{step.copy}</p><b aria-hidden="true">↗</b></article>)}</div></section>
-
-    <section className="editorial-age" id="price-age" aria-labelledby="age-heading"><div className="editorial-age__heading reveal"><span className="editorial-index">C / 03&nbsp; THE PRICE FEED</span><h2 id="age-heading">The price does not<br/>go stale slowly.<br/><em>It stops.</em></h2><p>A tokenized share can keep trading while the exchange behind its price is closed. The next update may arrive in one step. Prisma shows how old that price is before you make a decision.</p></div><PriceTimeline/><div className="editorial-age__figures reveal"><div><strong>65h</strong><span>PRICE HELD</span></div><div><strong>0h</strong><span>INTEREST PAUSED</span></div><div><strong>1 step</strong><span>PRICE CATCH-UP</span></div></div><p className="editorial-age__footnote">Illustrative weekend scenario. A displayed price age is context, not a prediction of the next price.</p></section>
-
-    <section className="editorial-position" id="one-view"><div className="editorial-position__intro reveal"><span className="editorial-index">POSITION STUDY / 01</span><h2>Move the amount.<br/><em>See the distance.</em></h2><p>Test a simple $1,000 collateral position against a 62.5% market limit. The figures update as you move the amount.</p></div><div className="editorial-position__tool reveal"><div className="editorial-position__input"><span>YOU BORROW</span><output htmlFor="borrow-range">${borrow}</output><input id="borrow-range" type="range" min="0" max="625" step="5" value={borrow} aria-label="Amount borrowed" onChange={(event) => setBorrow(Number(event.target.value))} style={{ '--progress': (borrow / 625 * 100) + '%' } as React.CSSProperties}/><div><span>$0</span><span>$625 MAX</span></div></div><div className="editorial-position__readout"><div><span>LIQUIDATION VALUE</span><strong>${liquidationValue}</strong></div><div><span>PRICE CUSHION</span><strong>{priceCushion}%</strong></div><div><span>PRICE AGE</span><strong>IN VIEW</strong></div></div></div><p className="editorial-position__note">Illustrative calculation, not live market data. The app does not connect to contracts or an oracle yet.</p></section>
-
-    <footer className="editorial-end"><div className="editorial-end__line"><span>PRISMA / ISOLATED EQUITY LENDING</span><a href="#top">BACK TO TOP ↑</a></div><div className="editorial-end__body reveal"><h2>The full position,<br/><em>before you sign.</em></h2><GlassButton href="#/markets" arrow>Explore markets</GlassButton></div><div className="editorial-end__bottom"><span>PRISMA © 2026</span><span>ONE MARKET AT A TIME</span></div></footer>
+function PositionPreview(){return <div className="ch-position-ui" aria-label="Illustrative lend and borrow panel"><div className="ch-position-alert">The price behind this market last moved <b>4h 17m</b> ago. Review its age before acting.</div><div className="ch-position-panels"><div><strong>Lend USDG</strong><span>You supplied <b>—</b></span><span>In your wallet <b>—</b></span><span>Earning <b className="ch-teal">0.00%</b></span><span>Utilization <b>3%</b></span><div className="ch-position-input">0.00 <small>USDG</small></div><div className="ch-position-actions"><i>Supply</i><i>Withdraw</i></div></div><div><strong>Borrow against SPY</strong><span>Collateral posted <b>—</b></span><span>You owe <b>—</b></span><span>Paying <b className="ch-red">0.04%</b></span><span>Liquidated above <b>62.5%</b></span><div className="ch-position-input">0.00 <small>SPY</small></div><div className="ch-position-actions"><i>Add collateral</i><i>Remove</i></div></div></div></div>}
+function AgePreview(){return <div className="ch-age-ui" aria-label="Illustrative position summary"><div><small>Total supplied</small><b>$21.7K</b></div><div><small>Total borrowed</small><b>$555</b></div><div><small>Utilization</small><b>3%</b></div><div><small>Price age</small><b className="ch-red">4h 17m</b></div></div>}
+function GapChart(){return <figure className="ch-chart reveal" aria-label="Friday price holds for 65 hours over the weekend, then updates in one step on Monday"><svg viewBox="0 0 800 240" role="img" aria-hidden="true"><path className="ch-chart-base" d="M25 205H775"/><path className="ch-chart-before" d="M25 135 65 118 106 135 150 101 191 112 230 93 270 102"/><path className="ch-chart-debt" d="M270 102 595 72"/><path className="ch-chart-held" d="M270 102H595V174"/><path className="ch-chart-after" d="M595 174 635 162 678 177 720 155 775 167"/><circle cx="270" cy="102" r="5" fill="#1b1c26"/><circle cx="595" cy="174" r="6" fill="#cf3d33"/></svg><div className="ch-chart-window"><strong>65 hours</strong><span>one price, unchanged</span><small>your debt keeps accruing</small></div><div className="ch-chart-labels"><span>FRI</span><span>SAT</span><span>SUN</span><span>MON</span></div></figure>}
+function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <div className={`ch-frame ch-frame--${kind||'default'} reveal`}><div className="ch-frame-inner">{children}</div></div>}
+export default function LandingSections(){
+  const [borrow,setBorrow]=useState(400);
+  const collateral=Math.round(borrow/.625);
+  const cushion=100-Math.round(collateral/10);
+  return <main className="ch-story" id="about">
+    <div className="ch-wrap">
+      <div className="ch-stats reveal" aria-label="Preview catalogue"><div><b>{equityAssets}</b><span>Equity assets in preview</span></div><div><b>{marketData.length}</b><span>Distinct assets shown</span></div><div><b>1</b><span>Clear view of every market</span></div></div>
+      <section className="ch-how" id="how"><div className="ch-section-heading reveal"><h2>How it works</h2><p>Four steps, and one number that gives the position its context.</p></div><ol className="ch-steps">{steps.map(([title,copy],i)=><li className="ch-step reveal" key={title} style={{'--order':i} as React.CSSProperties}><span className="ch-step-number">{String(i+1).padStart(2,'0')}</span><div><h3>{title}</h3><p>{copy}</p></div></li>)}</ol>
+        <div className="ch-calculator reveal"><div className="ch-calc-left"><h3>Try it against a real limit</h3><p>A $1,000 position in NVDA, against an illustrative liquidation limit of <b>62.5%</b>. Move the amount you borrow.</p><div className="ch-borrow"><span>You borrow</span><output htmlFor="ch-borrow-slider">${borrow}</output></div><input id="ch-borrow-slider" type="range" min="0" max="625" step="5" value={borrow} aria-label="Amount borrowed" style={{'--progress':`${borrow/625*100}%`} as React.CSSProperties} onChange={e=>setBorrow(Number(e.target.value))}/><div className="ch-calc-range"><span>$0</span><span>$625 max</span></div><div className="ch-calc-bar"><span style={{width:`${Math.max(0,cushion)}%`}}/></div></div><div className="ch-calc-right"><span>Liquidated once the collateral is worth</span><strong>${collateral}</strong><span>Which is a fall of</span><strong>{cushion}%</strong><p>This cushion relies on a price that may stop updating while the exchange is closed. Prisma puts its age beside the market.</p></div></div>
+        <div className="ch-gap" id="price-age"><div className="ch-gap-copy reveal"><span className="ch-eyebrow">WHY THE GAP EXISTS</span><h3>The price does not go stale slowly. It stops.</h3><p>The feed updates when its underlying exchange is open. Friday’s close can remain Saturday’s and Sunday’s price, then catch up in a single step on Monday.</p><div className="ch-gap-numbers"><div><b>65 h</b><span>Price held</span></div><div><b>0 h</b><span>Interest paused</span></div><div><b>1 step</b><span>Catch-up</span></div></div></div><GapChart/><p className="ch-gap-tail reveal">A loan can continue accruing through those hours. Prisma cannot make an old price current; it can show exactly how old the displayed price is before you act.</p></div>
+      </section>
+      <section className="ch-features" id="one-view"><div className="ch-section-heading reveal"><h2>Everything in one view</h2><p>Three details a price alone cannot tell you.</p></div><div className="ch-feature-grid">
+        <Frame kind="market"><MarketPreview/></Frame><div className="ch-feature-copy reveal"><h3>Every market, with its price age</h3><p>Browse assets, loan limits and rates in one table. Each row also shows how long ago the underlying price last moved.</p><a href="#/markets">View markets <span aria-hidden="true">↗</span></a></div>
+        <div className="ch-feature-copy reveal"><h3>Lend and borrow side by side</h3><p>Supply stablecoins or post tokenized shares as collateral. The market’s limit and the position are visible together, before any action.</p><a href="#/markets">Explore the app <span aria-hidden="true">↗</span></a></div><Frame kind="position"><PositionPreview/></Frame>
+        <Frame kind="age"><AgePreview/></Frame><div className="ch-feature-copy reveal"><h3>Told plainly when a price is old</h3><p>Price age sits beside the figures that matter. You can see the context and make your own decision.</p><GlassButton href="#/markets" arrow>Launch app</GlassButton></div>
+      </div><p className="ch-disclaimer">Illustrative interface preview. Market figures, price ages and calculations are not live; wallet actions are not connected.</p></section>
+    </div><footer className="ch-footer"><span>2026 PRISMA / INTERFACE PREVIEW</span><div><a href="#top">Back to top ↑</a><a href="#/docs">Docs</a><a href="#/faq">FAQ</a><a href="https://x.com/" target="_blank" rel="noopener noreferrer">X</a></div></footer>
   </main>;
 }
