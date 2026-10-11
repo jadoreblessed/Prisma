@@ -18,7 +18,7 @@ function Landing() {
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.01,rootMargin:'0px 0px 20% 0px'});
     items.forEach(item=>observer.observe(item));return()=>observer.disconnect();
   },[]);
-  const nav=[['Markets',MARKETS],['How it works','#about'],['Price age','#price-age'],['Docs',DOCS]];
+  const nav=[['Markets',MARKETS],['How it works','#how'],['Price age','#price-age'],['Docs',DOCS]];
   return <div className="landing-v2">
     <section className="landing-hero" id="top">
       <div className="hero-shader" aria-hidden="true">{canUseShader?<Suspense fallback={<div className="hero-fallback"/>}><HeroShader/></Suspense>:<div className="hero-fallback"/>}</div>
