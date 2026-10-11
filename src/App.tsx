@@ -21,7 +21,7 @@ function Landing() {
   const nav=[['Markets',MARKETS],['How it works','#about'],['Price age','#price-age'],['Docs',DOCS]];
   return <div className="landing-v2">
     <section className="landing-hero" id="top">
-      <div className="hero-shader" aria-hidden="true">{canUseShader?<Suspense fallback={null}><HeroShader/></Suspense>:<div className="hero-fallback"><div className="hero-fallback__halo"/><div className="hero-fallback__lens"><PrismaMark/></div></div>}</div>
+      <div className="hero-shader" aria-hidden="true">{canUseShader?<Suspense fallback={<div className="hero-fallback"/>}><HeroShader/></Suspense>:<div className="hero-fallback"/>}</div>
       <div className="hero-foreground">
         <header className="landing-header"><nav className="landing-nav" aria-label="Main navigation">
           <div className="landing-nav__left"><a className="landing-logo" href="#top" aria-label="Prisma home"><PrismaMark/></a><div className="landing-nav__links">{nav.map(([label,href])=><a href={href} key={label}>{label}</a>)}</div></div>
