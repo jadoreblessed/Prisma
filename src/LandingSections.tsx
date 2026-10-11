@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GlassButton from './GlassButton';
 import { equityAssets, markets as marketData, tokenLogo } from './marketData';
 import './LandingSections.css';
+import './PrismaScenes.css';
 
 const featured = [
   { symbol: 'SPY', pair: 'USDG', supplied: '$21.7K', supply: '0.00%', borrowed: '$555', borrow: '0.04%', age: '4h 17m' },
@@ -21,30 +22,52 @@ function MarketPreview() {
 }
 function PositionPreview(){return <div className="ch-position-ui" aria-label="Illustrative lend and borrow panel"><div className="ch-position-alert">The price behind this market last moved <b>4h 17m</b> ago. Review its age before acting.</div><div className="ch-position-panels"><div><strong>Lend USDG</strong><span>You supplied <b>—</b></span><span>In your wallet <b>—</b></span><span>Earning <b className="ch-teal">0.00%</b></span><span>Utilization <b>3%</b></span><div className="ch-position-input">0.00 <small>USDG</small></div><div className="ch-position-actions"><i>Supply</i><i>Withdraw</i></div></div><div><strong>Borrow against SPY</strong><span>Collateral posted <b>—</b></span><span>You owe <b>—</b></span><span>Paying <b className="ch-red">0.04%</b></span><span>Liquidated above <b>62.5%</b></span><div className="ch-position-input">0.00 <small>SPY</small></div><div className="ch-position-actions"><i>Add collateral</i><i>Remove</i></div></div></div></div>}
 function AgePreview(){return <div className="ch-age-ui" aria-label="Illustrative position summary"><div><small>Total supplied</small><b>$21.7K</b></div><div><small>Total borrowed</small><b>$555</b></div><div><small>Utilization</small><b>3%</b></div><div><small>Price age</small><b className="ch-red">4h 17m</b></div></div>}
-function GapChart(){return <figure className="ch-chart reveal" aria-label="Friday price holds for 65 hours over the weekend, then updates in one step on Monday"><svg viewBox="0 0 800 240" role="img" aria-hidden="true"><path className="ch-chart-base" d="M25 205H775"/><path className="ch-chart-before" d="M25 135 65 118 106 135 150 101 191 112 230 93 270 102"/><path className="ch-chart-debt" d="M270 102 595 72"/><path className="ch-chart-held" d="M270 102H595V174"/><path className="ch-chart-after" d="M595 174 635 162 678 177 720 155 775 167"/><circle cx="270" cy="102" r="5" fill="#1b1c26"/><circle cx="595" cy="174" r="6" fill="#cf3d33"/></svg><div className="ch-chart-window"><strong>65 hours</strong><span>one price, unchanged</span><small>your debt keeps accruing</small></div><div className="ch-chart-labels"><span>FRI</span><span>SAT</span><span>SUN</span><span>MON</span></div></figure>}
+const signalMarkets = [
+  {symbol:'SPY',name:'S&P 500 ETF',limit:'62.5%',age:'4h 17m',feed:'NYSE Arca',supply:'$21.7K',borrow:'$555'},
+  {symbol:'NVDA',name:'NVIDIA',limit:'62.5%',age:'11h 59m',feed:'NASDAQ',supply:'$13.1K',borrow:'$39'},
+  {symbol:'TSLA',name:'Tesla',limit:'62.5%',age:'6h 17m',feed:'NASDAQ',supply:'$13.1K',borrow:'$2'},
+];
+const ageMoments = [
+  {day:'FRIDAY',time:'16:00',age:'00',unit:'hours',title:'The exchange closes.',detail:'The last published price is held. The position remains open.'},
+  {day:'SATURDAY',time:'16:00',age:'24',unit:'hours',title:'The clock keeps going.',detail:'The displayed price is now a day old. The loan can keep accruing.'},
+  {day:'SUNDAY',time:'16:00',age:'48',unit:'hours',title:'The quote stays still.',detail:'A still number does not mean the underlying asset stood still.'},
+  {day:'MONDAY',time:'09:00',age:'65',unit:'hours',title:'The feed can catch up.',detail:'When the exchange reopens, the next update can arrive in one step.'},
+];
+function MarketSignal(){
+  const [selected,setSelected]=useState(0);
+  const market=signalMarkets[selected];
+  return <section className="signal-scene reveal" aria-label="Illustrative market context">
+    <div className="signal-grain" aria-hidden="true"/>
+    <div className="signal-head"><span>01 / MARKET CONTEXT</span><span>PRISMA — INTERFACE PREVIEW</span></div>
+    <div className="signal-body"><div className="signal-intro"><span className="signal-kicker"><i/> THE WHOLE POSITION</span><h3>Clarity lives<br/>in the <em>details.</em></h3><p>Choose a market. Its asset, lending activity, limit and price age come into focus together.</p><div className="signal-tabs" role="group" aria-label="Select a market">{signalMarkets.map((item,i)=><button type="button" key={item.symbol} className={selected===i?'active':''} aria-pressed={selected===i} onClick={()=>setSelected(i)}><img src={tokenLogo(item.symbol)} alt=""/>{item.symbol}<span>↗</span></button>)}</div></div>
+    <div className="signal-display" key={market.symbol}><div className="signal-scan" aria-hidden="true"/><div className="signal-display-top"><span>MARKET / {String(selected+1).padStart(2,'0')}</span><span className="signal-live"><i/> SAMPLE DATA</span></div><div className="signal-asset"><img src={tokenLogo(market.symbol)} alt=""/><div><span>TOKENIZED EQUITY / {market.feed}</span><strong>{market.symbol}<small> / USDG</small></strong><p>{market.name}</p></div></div><div className="signal-divider"/><div className="signal-values"><div><span>LOAN LIMIT</span><b>{market.limit}</b></div><div><span>TOTAL SUPPLIED</span><b>{market.supply}</b></div><div><span>TOTAL BORROWED</span><b>{market.borrow}</b></div></div><div className="signal-age"><div><span>LAST PRICE UPDATE</span><strong>{market.age} ago</strong></div><div className="signal-pulse" aria-hidden="true"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div></div></div></div>
+    <div className="signal-foot"><span>ISOLATED MARKET / ONE COLLATERAL / ONE LIMIT</span><span>SELECT A MARKET ABOVE ↑</span></div>
+  </section>;
+}
+function PriceAgeScene(){
+  const [active,setActive]=useState(0);
+  const moment=ageMoments[active];
+  useEffect(()=>{
+    const node=document.querySelector('.age-scene');
+    if(!node || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let timer:number|undefined;
+    const observer=new IntersectionObserver(([entry])=>{
+      if(entry.isIntersecting && timer===undefined) timer=window.setInterval(()=>setActive(index=>(index+1)%ageMoments.length),3200);
+      else if(!entry.isIntersecting && timer!==undefined){window.clearInterval(timer);timer=undefined;}
+    },{threshold:.35});
+    observer.observe(node);
+    return ()=>{observer.disconnect();if(timer!==undefined)window.clearInterval(timer);};
+  },[]);
+  return <section className="age-scene reveal" id="price-age" aria-label="Illustrative price age sequence"><div className="age-noise" aria-hidden="true"/><div className="age-top"><span>02 / PRICE AGE</span><span>AN EXCHANGE HAS HOURS. A POSITION DOESN’T.</span></div><div className="age-layout"><div className="age-editorial"><span className="age-small">WHY THE AGE MATTERS</span><h3>A price can pause.<br/><em>Your position doesn’t.</em></h3><p>When the exchange closes, the last price may stay on screen while a loan continues to accrue. Prisma places its age beside the market, before you act.</p></div><div className="age-clock" aria-live="polite"><div className="age-clock-head"><span>LAST PUBLISHED PRICE</span><span>FRI / 16:00</span></div><div className="age-digits" key={moment.age}><strong>{moment.age}</strong><span>{moment.unit}<i>OLD</i></span></div><div className="age-orbit" aria-hidden="true"/><div className="age-clock-caption"><span>{moment.day} · {moment.time}</span><strong>{moment.title}</strong><p>{moment.detail}</p></div></div></div><div className="age-timeline" role="group" aria-label="Weekend price age timeline">{ageMoments.map((item,i)=><button type="button" key={item.day} className={active===i?'active':''} aria-pressed={active===i} onClick={()=>setActive(i)}><span className="age-timeline-dot"/><span>{item.day}</span><small>{item.time}</small></button>)}</div><div className="age-bottom"><span>ONE PRICE HELD / TIME VISIBLE</span><span>ILLUSTRATIVE WEEKEND SEQUENCE</span></div></section>;
+}
 function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <div className={`ch-frame ch-frame--${kind||'default'} reveal`}><div className="ch-frame-inner">{children}</div></div>}
 export default function LandingSections(){
-  const [borrow,setBorrow]=useState(400);
-  const collateral=Math.round(borrow/.625);
-  const cushion=100-Math.round(collateral/10);
   return <main className="ch-story" id="about">
     <div className="ch-wrap">
       <div className="ch-stats reveal" aria-label="Preview catalogue"><div><b>{equityAssets}</b><span>Equity assets in preview</span></div><div><b>{marketData.length}</b><span>Distinct assets shown</span></div><div><b>1</b><span>Clear view of every market</span></div></div>
       <section className="ch-how" id="how"><div className="ch-section-heading reveal"><h2>How it works</h2><p>Four steps, and one number that gives the position its context.</p></div><ol className="ch-steps reveal">{steps.map(([title,copy],i)=><li className="ch-step reveal" key={title} style={{'--order':i} as React.CSSProperties}><span className="ch-step-number">{String(i+1).padStart(2,'0')}</span><div><h3>{title}</h3><p>{copy}</p></div></li>)}</ol>
-        <div className="ch-calculator reveal" aria-label="Illustrative borrowing calculator">
-          <div className="ch-calc-header"><span>POSITION STUDY <i/> NVDA / USDG</span><span>COLLATERAL $1,000 <i/> LIMIT 62.5%</span></div>
-          <div className="ch-calc-main">
-            <div className="ch-calc-left">
-              <div className="ch-calc-intro"><span className="ch-calc-index">01 / AMOUNT</span><h3>Set the loan.</h3><p>Move the line to see where a $1,000 collateral position meets the market limit.</p></div>
-              <div className="ch-borrow"><span>You borrow</span><output htmlFor="ch-borrow-slider">${borrow}</output></div>
-              <div className="ch-calc-ruler"><input id="ch-borrow-slider" type="range" min="0" max="625" step="5" value={borrow} aria-label="Amount borrowed" style={{'--progress':`${borrow/625*100}%`} as React.CSSProperties} onChange={e=>setBorrow(Number(e.target.value))}/></div>
-              <div className="ch-calc-range"><span>$0</span><span>$625 / MAXIMUM</span></div>
-            </div>
-            <div className="ch-calc-right"><span className="ch-calc-index">02 / DISTANCE TO LIMIT</span><div className="ch-calc-measure"><span>Collateral value at liquidation</span><strong>${collateral}</strong></div><div className="ch-calc-measure"><span>Fall from today’s value</span><strong>{cushion}%</strong></div><div className="ch-calc-distance"><span style={{width:`${Math.max(0,cushion)}%`}}/><i style={{left:`${Math.max(0,cushion)}%`}}/></div><div className="ch-calc-distance-labels"><span>LIQUIDATION</span><span>CURRENT PRICE</span></div></div>
-          </div>
-          <div className="ch-calc-footer"><span>Even a wide cushion depends on the age of the price behind it.</span><span>DRAG TO TEST ↗</span></div>
-        </div>
-        <div className="ch-gap" id="price-age"><div className="ch-gap-copy reveal"><span className="ch-eyebrow">WHY THE GAP EXISTS</span><h3>The price does not go stale slowly. It stops.</h3><p>The feed updates when its underlying exchange is open. Friday’s close can remain Saturday’s and Sunday’s price, then catch up in a single step on Monday.</p><div className="ch-gap-numbers"><div><b>65 h</b><span>Price held</span></div><div><b>0 h</b><span>Interest paused</span></div><div><b>1 step</b><span>Catch-up</span></div></div></div><GapChart/><p className="ch-gap-tail reveal">A loan can continue accruing through those hours. Prisma cannot make an old price current; it can show exactly how old the displayed price is before you act.</p></div>
+        <MarketSignal/>
+        <PriceAgeScene/>
       </section>
       <section className="ch-features" id="one-view"><div className="ch-section-heading reveal"><h2>Everything in one view</h2><p>Three details a price alone cannot tell you.</p></div><div className="ch-feature-grid">
         <Frame kind="market"><MarketPreview/></Frame><div className="ch-feature-copy reveal"><h3>Every market, with its price age</h3><p>Browse assets, loan limits and rates in one table. Each row also shows how long ago the underlying price last moved.</p><a href="#/markets">View markets <span aria-hidden="true">↗</span></a></div>
