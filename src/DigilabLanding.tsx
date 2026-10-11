@@ -98,10 +98,12 @@ function MarketVisual({ active }: { active: number }) {
 }
 
 export default function DigilabLanding() {
+  const siteRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [openDetail, setOpenDetail] = useState<number | null>(null);
+  const [departing, setDeparting] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > window.innerHeight * .68);
     onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
@@ -116,17 +118,84 @@ export default function DigilabLanding() {
     return () => observer.disconnect();
   }, []);
   useEffect(() => { document.body.style.overflow = menu ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [menu]);
+  useEffect(() => {
+    const site = siteRef.current;
+    if (!site) return;
+    const intro = site.querySelector<HTMLElement>('.dl-intro');
+    const overview = site.querySelector<HTMLElement>('.dl-overview');
+    const interlude = site.querySelector<HTMLElement>('.dl-interlude');
+    const process = site.querySelector<HTMLElement>('.dl-process');
+    const contact = site.querySelector<HTMLElement>('.dl-contact');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let pending = false;
+    const progress = (element: HTMLElement | null) => {
+      if (!element) return 0;
+      const rect = element.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (window.innerHeight - rect.top) / (window.innerHeight + rect.height)));
+    };
+    const update = () => {
+      pending = false;
+      if (reduceMotion.matches) return;
+      const introRect = intro?.getBoundingClientRect();
+      const introProgress = introRect ? Math.max(0, Math.min(1, -introRect.top / Math.max(introRect.height, 1))) : 0;
+      site.style.setProperty('--intro-p', introProgress.toFixed(3));
+      site.style.setProperty('--intro-y', `${(-introProgress * 110).toFixed(1)}px`);
+      site.style.setProperty('--intro-scale', (1 + introProgress * .36).toFixed(3));
+      site.style.setProperty('--intro-alpha', Math.max(0, 1 - introProgress * 2).toFixed(3));
+      const mapProgress = progress(overview);
+      site.style.setProperty('--map-y', `${((mapProgress - .5) * -90).toFixed(1)}px`);
+      site.style.setProperty('--map-scale', (1.08 + mapProgress * .12).toFixed(3));
+      const orbitProgress = progress(interlude);
+      site.style.setProperty('--orb-scale', (.65 + orbitProgress * .7).toFixed(3));
+      site.style.setProperty('--orb-turn', `${(orbitProgress * 145).toFixed(1)}deg`);
+      const darkRect = interlude?.getBoundingClientRect();
+      site.classList.toggle('dl-on-dark', Boolean(darkRect && darkRect.top <= 60 && darkRect.bottom > 60));
+      const dataProgress = progress(process);
+      site.style.setProperty('--line-reveal', `${((1 - Math.min(1, dataProgress * 2.2)) * 100).toFixed(1)}%`);
+      const contactProgress = progress(contact);
+      site.style.setProperty('--contact-y', `${((contactProgress - .5) * -60).toFixed(1)}px`);
+    };
+    const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(update); } };
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => { window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); };
+  }, []);
+  useEffect(() => {
+    const site = siteRef.current;
+    if (!site) return;
+    const targets = site.querySelectorAll<HTMLElement>('.dl-reveal, .dl-overview__content');
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-inview');
+        observer.unobserve(entry.target);
+      }
+    }), { threshold: .16, rootMargin: '0px 0px -6% 0px' });
+    targets.forEach(target => observer.observe(target));
+    return () => observer.disconnect();
+  }, []);
+  const discover = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    if (departing) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.getElementById('what-we-do')?.scrollIntoView();
+      return;
+    }
+    setDeparting(true);
+    window.setTimeout(() => document.getElementById('what-we-do')?.scrollIntoView({ behavior: 'smooth' }), 520);
+    window.setTimeout(() => setDeparting(false), 1900);
+  };
   const nav = [['WHAT WE DO', '#what-we-do'], ['OUR MARKETS', '#markets'], ['HOW IT WORKS', '#how-it-works'], ['PRICE AGE', '#price-age'], ['FAQ', '#faq']];
-  return <div className="dl-site" id="top">
+  return <div className="dl-site" id="top" ref={siteRef}>
     <header className={`dl-nav ${scrolled ? 'dl-nav--visible' : ''}`}><a className="dl-brand" href="#top"><PrismaMark />Prisma</a><nav aria-label="Primary navigation">{nav.map(([label, href]) => <a key={label} href={href}>{label}</a>)}<Pill href={APP}>LAUNCH APP</Pill></nav><button className="dl-menu-button" aria-label="Open navigation" onClick={() => setMenu(true)}><Menu size={23} /></button></header>
     <div className={`dl-mobile-menu ${menu ? 'is-open' : ''}`} aria-hidden={!menu}><div className="dl-mobile-menu__head"><span>Prisma</span><button aria-label="Close navigation" onClick={() => setMenu(false)}><X size={23}/></button></div>{nav.map(([label, href]) => <a key={label} href={href} onClick={() => setMenu(false)}>{label}<span>↗</span></a>)}<a href={APP} onClick={() => setMenu(false)}>LAUNCH APP<span>↗</span></a></div>
-    <section className="dl-intro" aria-label="Prisma intro"><MarketTerrain className="dl-intro__terrain" /><div className="dl-intro__wash"/><div className="dl-intro__copy"><span className="dl-intro__brand">Prisma</span><h1>Isolated markets<br/>for tokenized<br/>equities</h1><Pill href="#what-we-do" arrow>DISCOVER PRISMA</Pill></div><span className="dl-intro__index">01 / 04</span></section>
+    <section className={`dl-intro ${departing ? 'is-departing' : ''}`} aria-label="Prisma intro"><MarketTerrain className="dl-intro__terrain" /><div className="dl-intro__wash"/><div className="dl-intro__copy"><span className="dl-intro__brand">Prisma</span><h1>{['Isolated markets', 'for tokenized', 'equities'].map((line, row) => <span className="dl-intro__line" key={line}>{line.split(' ').map((word, column) => <span className="dl-intro__word" key={word} style={{'--word-i': row * 2 + column} as React.CSSProperties}>{word}{column < line.split(' ').length - 1 ? '\u00a0' : ''}</span>)}</span>)}</h1><a href="#what-we-do" onClick={discover} className="dl-pill">DISCOVER PRISMA <span aria-hidden="true">▶</span></a></div><span className="dl-intro__index">01 / 04</span></section>
     <section className="dl-overview" id="what-we-do"><MarketTerrain /><div className="dl-overview__markers" aria-hidden="true">{Array.from({length:19}, (_, i) => <i key={i} style={{left:`${8 + ((i * 41) % 86)}%`,top:`${13 + ((i * 29) % 75)}%`,background:palette[i % 3]}} />)}</div><div className="dl-overview__content"><h2>Prisma brings lending, borrowing and price context together in one isolated market.</h2><div className="dl-overview__key"><span>40.7128° N&nbsp; 74.0060° W<br/>MARKET / NVDA</span><span>PRICE FEED<br/>AGE VISIBLE</span></div></div></section>
     <section className="dl-interlude" aria-label="From one market to the whole picture"><div className="dl-interlude__orbit">{Array.from({length:18},(_,i)=><span key={i} style={{'--a':`${i*20}deg`,background:palette[i%3] } as React.CSSProperties}/>)}</div><div className="dl-interlude__core"><div className="dl-interlude__bars">{Array.from({length:31},(_,i)=><i key={i} style={{height:`${9 + (i*13)%25}px`}}/>)}</div><span>ONE MARKET&nbsp; · &nbsp;ONE CLEAR RISK</span></div></section>
-    <section className="dl-process" id="how-it-works"><div className="dl-process__ruler" aria-hidden="true">{Array.from({length:80},(_,i)=><span key={i}>····</span>)}</div><div className="dl-process__steps">{steps.map((step,i)=><article key={step.n} className={`dl-step ${activeStep===i?'is-active':''}`} data-step={i}><span className="dl-step__number">{step.n}</span><div className="dl-step__content"><span className="dl-step__icon">{step.icon}</span><h2>{step.title}</h2><p>{step.body}</p>{i===2&&<Pill href={APP}>GO TO MARKETS</Pill>}</div></article>)}</div><div className="dl-process__visual"><MarketVisual active={activeStep}/></div></section>
-    <section className="dl-markets" id="markets"><h2>Markets in view.<br/>Every price has an age.</h2><div className="dl-token-window"><div className="dl-token-track">{[...symbols,...symbols].map((symbol,i)=><a href={APP} className="dl-token" key={`${symbol}-${i}`}><img src={tokenLogo(symbol)} alt=""/><span>{symbol}</span><span className="dl-token__corners"/></a>)}</div></div><div className="dl-markets__ruler"/><Pill href={APP}>VIEW MARKETS&nbsp; ↗</Pill></section>
-    <section className="dl-explainer" id="price-age"><p className="dl-explainer__statement">A market is more than a rate. Prisma puts the collateral, loan limit and age of its underlying price in front of you.</p><div className="dl-explainer__list" id="faq">{details.map((item,i)=><div className={`dl-disclosure ${openDetail===i?'is-open':''}`} key={item.title}><button aria-expanded={openDetail===i} onClick={()=>setOpenDetail(openDetail===i?null:i)}>{item.title}<span>{openDetail===i?'−':'+'}</span></button><div className="dl-disclosure__body"><p>{item.body}</p></div></div>)}</div></section>
-    <section className="dl-contact"><div className="dl-contact__dots" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{left:`${5+(i*31)%92}%`,top:`${16+(i*43)%68}%`,background:palette[i%3]}}/>)}</div><h2>Explore the<br/>markets with us</h2><Pill href={APP}>LAUNCH APP</Pill></section>
+    <section className="dl-process" id="how-it-works"><div className="dl-process__ruler" aria-hidden="true">{Array.from({length:80},(_,i)=><span key={i}>····</span>)}</div><div className="dl-process__steps">{steps.map((step,i)=><article key={step.n} className={`dl-step ${activeStep===i?'is-active':''}`} data-step={i}><span className="dl-step__number">{step.n}</span><div className="dl-step__content"><span className="dl-step__icon">{step.icon}</span><h2>{step.title}</h2><p>{step.body}</p>{i===2&&<Pill href={APP}>GO TO MARKETS</Pill>}</div></article>)}</div><div className="dl-process__visual"><MarketVisual key={activeStep} active={activeStep}/></div></section>
+    <section className="dl-markets" id="markets"><h2 className="dl-reveal">Markets in view.<br/>Every price has an age.</h2><div className="dl-token-window dl-reveal"><div className="dl-token-track">{[...symbols,...symbols].map((symbol,i)=><a href={APP} className="dl-token" key={`${symbol}-${i}`}><img src={tokenLogo(symbol)} alt=""/><span>{symbol}</span><span className="dl-token__corners"/></a>)}</div></div><div className="dl-markets__ruler"/><div className="dl-reveal"><Pill href={APP}>VIEW MARKETS&nbsp; ↗</Pill></div></section>
+    <section className="dl-explainer" id="price-age"><p className="dl-explainer__statement dl-reveal">A market is more than a rate. Prisma puts the collateral, loan limit and age of its underlying price in front of you.</p><div className="dl-explainer__list" id="faq">{details.map((item,i)=><div className={`dl-disclosure dl-reveal ${openDetail===i?'is-open':''}`} key={item.title} style={{transitionDelay:`${i*65}ms`}}><button aria-expanded={openDetail===i} onClick={()=>setOpenDetail(openDetail===i?null:i)}>{item.title}<span>{openDetail===i?'−':'+'}</span></button><div className="dl-disclosure__body"><p>{item.body}</p></div></div>)}</div></section>
+    <section className="dl-contact"><div className="dl-contact__dots" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{left:`${5+(i*31)%92}%`,top:`${16+(i*43)%68}%`,background:palette[i%3]}}/>)}</div><h2 className="dl-reveal">Explore the<br/>markets with us</h2><div className="dl-reveal"><Pill href={APP}>LAUNCH APP</Pill></div></section>
     <footer className="dl-footer"><a className="dl-footer__brand" href="#top">Prisma</a><div><span>EXPLORE:</span><a href={APP}>MARKETS</a><a href="#how-it-works">HOW IT WORKS</a><a href="#price-age">PRICE AGE</a><a href="#faq">FAQ</a></div><div><span>PRISMA:</span><a href="#/docs">DOCS</a><a href="#/vaults">VAULTS</a><a href="#/stake">STAKE</a><a href="https://x.com/" target="_blank" rel="noreferrer">X / TWITTER</a></div><small>PRISMA&nbsp; © 2026&nbsp; <ArrowUpRight size={12}/></small></footer>
   </div>;
 }
