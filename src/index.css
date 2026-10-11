@@ -156,6 +156,8 @@ button:focus-visible,a:focus-visible{outline:2px solid #f26522;outline-offset:4p
 .glass-button:hover,.glass-button:focus-visible{background:radial-gradient(90% 130% at var(--light-x) var(--light-y),#5b5d63 0%,#282a2f 45%,#141519 78%),linear-gradient(#26272c,#16171b);box-shadow:inset 1px 1px 1px #ffffffbb,inset -2px -2px 2px #0009,0 14px 26px #15151932;transform:translateY(-2px)}
 .glass-button:hover:before{opacity:1}.glass-button:active{transform:translateY(1px) scale(.985)}
 .glass-button__label,.glass-button__arrow{position:relative;z-index:1}.glass-button__arrow{transition:transform .35s}.glass-button:hover .glass-button__arrow{transform:translateX(4px)}
+.landing-v2 a.glass-button,.ch-story a.glass-button,.product-page a.glass-button,button.glass-button{color:#fff;text-shadow:0 1px 2px #0007}
+.glass-button__label,.glass-button__arrow{color:#fff;opacity:1}
 .hero-badge{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;border:1px solid #2225;border-radius:999px;background:#ffffffab;padding:13px 19px;backdrop-filter:blur(16px)}
 .hero-actions{align-items:center}
 .landing-menu__cta{width:100%}

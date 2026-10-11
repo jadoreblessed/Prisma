@@ -26,3 +26,39 @@
 @media(max-width:700px){.signal-scene,.age-scene{padding:20px 19px;margin-inline:-20px}.signal-head span:last-child,.signal-foot span:last-child,.age-top span:last-child,.age-bottom span:last-child{display:none}.signal-body,.age-layout{grid-template-columns:1fr;gap:37px;padding:50px 0 45px;min-height:0}.signal-intro h3,.age-editorial h3{font-size:clamp(43px,10vw,68px)}.signal-intro p,.age-editorial p{font-size:15px}.signal-tabs{margin-top:27px}.signal-display{min-height:390px;padding:20px}.signal-asset{margin:35px 0 24px}.signal-asset strong{font-size:65px}.signal-scene{min-height:0}.age-scene{min-height:0;margin-bottom:85px}.age-layout{padding-bottom:28px}.age-clock{min-height:400px}.age-digits strong{font-size:clamp(145px,35vw,220px)}.age-timeline{margin:0 0 35px}.age-timeline button{font-size:9px}.age-timeline small{font-size:9px}}
 @media(max-width:390px){.signal-asset strong{font-size:52px}.signal-values b{font-size:18px}.signal-values span{font-size:8px}.age-digits strong{font-size:130px}.age-digits>span{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.signal-scene *, .age-scene *{animation:none!important;transition:none!important}.signal-scene:not(.is-visible),.age-scene:not(.is-visible){opacity:1;transform:none}}
+
+/* A daylight particle scene: the drawing moves while the content remains legible. */
+.signal-scene{background:#f7f5f2;color:#17171a;border-color:#ddd8d3}
+.signal-particles{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.signal-grain{opacity:.05}
+.signal-head,.signal-foot{color:#66646a;border-color:#29282b36}
+.signal-kicker{color:#af543c}.signal-kicker i{background:#bd634b;box-shadow:0 0 12px #bd634b}
+.signal-intro h3 em{color:#ad553e}.signal-intro p{color:#515057}
+.signal-tabs button{color:#4f4d52;border-color:#77747b77;background:#ffffffb0;backdrop-filter:blur(4px)}
+.signal-tabs button:hover{border-color:#242326}.signal-tabs button.active{background:#1d1d21;color:#fff;border-color:#1d1d21}
+.signal-display{background:linear-gradient(145deg,#222127f5,#111216f7 65%);color:#f2f0ea;backdrop-filter:blur(12px)}
+.signal-body{position:relative;z-index:1}
+
+/* Three continuously moving market diagrams, drawn with simple borders and transforms. */
+.age-diagrams{display:grid;grid-template-columns:repeat(3,1fr);margin:0 22px 57px;border-top:1px solid #ffffff2b;border-left:1px solid #ffffff2b}
+.age-diagram{min-width:0;padding:0 22px 28px;border-right:1px solid #ffffff2b;border-bottom:1px solid #ffffff2b;transition:background .35s}
+.age-diagram:hover{background:#ffffff0a}
+.age-diagram-art{height:205px;position:relative;overflow:hidden;border-bottom:1px solid #ffffff2b;margin-bottom:26px}
+.age-diagram>span{color:#e3a27b;font:600 10px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em}
+.age-diagram h4{font-size:20px;font-weight:500;letter-spacing:-.035em;margin:14px 0 10px;color:#f3eee9}
+.age-diagram p{font-size:13px;line-height:1.55;color:#b0aaad;max-width:290px}
+.age-diagram-orbit i{position:absolute;left:50%;top:48%;width:var(--diameter,75px);height:var(--diameter,75px);border:1px solid #e5dfdc8a;border-radius:50%;transform:translate(-50%,-50%);animation:diagram-turn 14s linear infinite}
+.age-diagram-orbit i:nth-child(2){--diameter:115px;animation-duration:18s;animation-direction:reverse}.age-diagram-orbit i:nth-child(3){--diameter:155px;animation-duration:22s}.age-diagram-orbit i:nth-child(4){--diameter:195px;animation-duration:26s;animation-direction:reverse}
+.age-diagram-orbit i:after{content:'';position:absolute;left:50%;top:-2px;width:4px;height:4px;background:#e4a27b;border-radius:50%;box-shadow:0 0 8px #eba77d}
+.age-diagram-orbit b{position:absolute;left:50%;top:48%;width:16px;height:16px;border-radius:50%;background:#eee8e2;transform:translate(-50%,-50%);box-shadow:0 0 15px #e7a37b99}
+.age-diagram-depth i{position:absolute;left:50%;top:49%;width:var(--dw,185px);height:var(--dh,120px);border:1px solid #e4dedc9e;transform:translate(-50%,-50%) scale(var(--depth,1));animation:diagram-depth 3.5s ease-in-out infinite alternate}
+.age-diagram-depth i:nth-child(2){--depth:.79;animation-delay:-.55s}.age-diagram-depth i:nth-child(3){--depth:.59;animation-delay:-1.1s}.age-diagram-depth i:nth-child(4){--depth:.4;animation-delay:-1.65s}.age-diagram-depth i:nth-child(5){--depth:.22;animation-delay:-2.2s}
+.age-diagram-depth b{position:absolute;left:50%;top:49%;width:4px;height:4px;background:#e8a47c;transform:translate(-50%,-50%);box-shadow:0 0 12px #e8a47c}
+.age-diagram-flow i{position:absolute;left:-8%;right:-8%;top:calc(14% + var(--line)*9%);height:42px;border-top:1px solid #e5dfdc99;border-radius:50% 50% 0 0;transform:translateX(0);animation:diagram-flow 3.2s ease-in-out infinite alternate;animation-delay:calc(var(--line)*-.2s)}
+@keyframes diagram-turn{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes diagram-depth{to{transform:translate(-50%,-56%) scale(var(--depth));opacity:.48}}
+@keyframes diagram-flow{to{transform:translateX(5%);border-radius:30% 70% 0 0}}
+.age-scene.is-visible .age-diagram{animation:scene-rise .8s both cubic-bezier(.16,1,.3,1)}
+.age-scene.is-visible .age-diagram:nth-child(2){animation-delay:.1s}.age-scene.is-visible .age-diagram:nth-child(3){animation-delay:.2s}
+@media(max-width:700px){.age-diagrams{grid-template-columns:1fr;margin-inline:0}.age-diagram{display:grid;grid-template-columns:120px 1fr;column-gap:20px;min-height:185px;padding:0 15px 18px}.age-diagram-art{grid-row:1/4;height:100%;min-height:185px;margin:0;border-bottom:0;border-right:1px solid #ffffff2b}.age-diagram>span{align-self:end;margin-top:25px}.age-diagram h4{margin:9px 0 3px}.age-diagram p{margin-bottom:8px}.age-diagram-orbit i:nth-child(4){--diameter:135px}.age-diagram-orbit i:nth-child(3){--diameter:105px}.age-diagram-orbit i:nth-child(2){--diameter:75px}.age-diagram-orbit i:first-child{--diameter:45px}.age-diagram-depth i{--dw:115px;--dh:82px}}
+@media(max-width:390px){.age-diagram{grid-template-columns:100px 1fr;gap:12px}.age-diagram p{font-size:12px}.age-diagram h4{font-size:18px}}
