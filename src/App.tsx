@@ -1,80 +1,89 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type PointerEvent } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Menu, X } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { ArrowRight, Clock3, Menu, X } from 'lucide-react';
 import Product from './Product';
 
-const APP = '#/markets';
 const MARKETS = '#/markets';
 const DOCS = '#/docs';
-const tokens = [
-  ['SPY','S&P 500 ETF','#1647dc','4h 17m'], ['NVDA','NVIDIA','#83ba18','11h 59m'],
-  ['TSLA','Tesla','#db2636','6h 17m'], ['CRWV','CoreWeave','#414478','48m'],
-  ['NBIS','Nebius','#b9d600','25m'], ['AAPL','Apple','#20232a','5h 22m']
-];
-const clamp = (x:number) => Math.max(0,Math.min(1,x));
-const phase = (p:number,a:number,b:number) => clamp((p-a)/(b-a));
-const styleFor = (opacity:number):CSSProperties => ({opacity,visibility:opacity<.01?'hidden':'visible',pointerEvents:opacity>.7?'auto':'none'});
-function Mark(){return <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 2.5c1.5 12.6 8.9 20 21.5 21.5C32.9 25.5 25.5 32.9 24 45.5 22.5 32.9 15.1 25.5 2.5 24 15.1 22.5 22.5 15.1 24 2.5Z" fill="currentColor"/></svg>}
-function GlassButton({children,href,onClick,small=false}:{children:ReactNode;href?:string;onClick?:()=>void;small?:boolean}){
-  const ref=useRef<HTMLAnchorElement & HTMLButtonElement>(null);
-  const move=(e:PointerEvent<HTMLElement>)=>{const el=ref.current;if(!el)return;const b=el.getBoundingClientRect();el.style.setProperty('--light-x',`${((e.clientX-b.left)/b.width)*100}%`);el.style.setProperty('--light-y',`${((e.clientY-b.top)/b.height)*100}%`)};
-  const leave=()=>{ref.current?.style.setProperty('--light-x','50%');ref.current?.style.setProperty('--light-y','12%')};
-  const props={ref,className:`glass-button ${small?'glass-button--small':''}`,onPointerMove:move,onPointerLeave:leave};
-  return href?<a {...props} href={href}>{children}</a>:<button {...props} type="button" onClick={onClick}>{children}</button>;
+const HeroShader = lazy(() => import('./HeroShader'));
+
+function Mark() {
+  return <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 2.5c1.5 12.6 8.9 20 21.5 21.5C32.9 25.5 25.5 32.9 24 45.5 22.5 32.9 15.1 25.5 2.5 24 15.1 22.5 22.5 15.1 24 2.5Z" fill="currentColor"/></svg>;
 }
-function useScene(){
-  const track=useRef<HTMLDivElement>(null);const [progress,setProgress]=useState(0);
-  useEffect(()=>{let raf=0;const update=()=>{raf=0;const el=track.current;if(!el)return;const p=clamp((window.scrollY-el.offsetTop)/Math.max(1,el.offsetHeight-window.innerHeight));setProgress(old=>Math.abs(old-p)>.0002?p:old)};const schedule=()=>{if(!raf)raf=requestAnimationFrame(update)};update();window.addEventListener('scroll',schedule,{passive:true});window.addEventListener('resize',schedule);window.addEventListener('orientationchange',schedule);return()=>{cancelAnimationFrame(raf);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);window.removeEventListener('orientationchange',schedule)}},[]);
-  const go=(p:number)=>{const el=track.current;if(el)window.scrollTo({top:el.offsetTop+p*(el.offsetHeight-window.innerHeight),behavior:'smooth'})};
-  return {track,progress,go};
+function RollButton({children,href,tone='orange',className=''}:{children:string;href:string;tone?:'orange'|'dark';className?:string}) {
+  return <a href={href} className={`roll-button roll-button--${tone} group ${className}`}><span className="roll-button__window"><span>{children}</span><span aria-hidden="true">{children}</span></span><span className="roll-button__icon"><ArrowRight size={16} strokeWidth={1.8}/></span></a>;
 }
-function Landing(){
-  const {track,progress,go}=useScene();const [menu,setMenu]=useState(false);const [ready,setReady]=useState(false);
-  const [videoReady,setVideoReady]=useState(false);
-  const videoRef=useRef<HTMLVideoElement>(null);
-  useEffect(()=>{const id=requestAnimationFrame(()=>setReady(true));return()=>cancelAnimationFrame(id)},[]);
-  useEffect(()=>{document.body.style.overflow=menu?'hidden':'';return()=>{document.body.style.overflow=''}},[menu]);
+function Badge({number,children}:{number:string;children:ReactNode}) {
+  return <div className="section-badge"><span className="section-badge__number">{number}</span><span className="section-badge__label">{children}</span></div>;
+}
+function useNewYorkTime() {
+  const getTime=()=>new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+  const [time,setTime]=useState(getTime);
+  useEffect(()=>{const id=window.setInterval(()=>setTime(getTime()),1000);return()=>window.clearInterval(id)},[]);
+  return time;
+}
+function Landing() {
+  const [menuOpen,setMenuOpen]=useState(false);
+  const [canUseShader]=useState(()=>typeof navigator!=='undefined' && 'gpu' in navigator && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const time=useNewYorkTime();
+  useEffect(()=>{document.body.style.overflow=menuOpen?'hidden':'';return()=>{document.body.style.overflow=''}},[menuOpen]);
   useEffect(()=>{
-    const video=videoRef.current;if(!video)return;
-    let frame=0,last=performance.now(),current=0,target=0,stopped=false;
-    const tick=(now:number)=>{
-      if(stopped)return;
-      const el=track.current;
-      const span=Math.max(1,(el?.offsetHeight||window.innerHeight)-window.innerHeight);
-      target=clamp((window.scrollY-(el?.offsetTop||0))/span)*(Number.isFinite(video.duration)?video.duration:0);
-      const dt=Math.min(.1,(now-last)/1000);last=now;
-      current+=(target-current)*(1-Math.exp(-11*dt));
-      if(Math.abs(target-current)<.006)current=target;
-      if(video.readyState>=1&&!video.seeking&&Math.abs(video.currentTime-current)>.018){try{video.currentTime=Math.min(current,Math.max(0,video.duration-.025))}catch{/* wait for metadata */}}
-      frame=requestAnimationFrame(tick);
-    };
-    const unlock=()=>{video.play().then(()=>{video.pause();video.currentTime=current}).catch(()=>{})};
-    video.addEventListener('loadedmetadata',()=>{video.pause();video.currentTime=0});
-    window.addEventListener('pointerdown',unlock,{once:true});
-    window.addEventListener('touchstart',unlock,{once:true});
-    frame=requestAnimationFrame(tick);
-    return()=>{stopped=true;cancelAnimationFrame(frame);window.removeEventListener('pointerdown',unlock);window.removeEventListener('touchstart',unlock);video.pause()};
-  },[track]);
-  const jump=(p:number)=>{setMenu(false);go(p)};
-  const hero=1-phase(progress,.19,.29),about=phase(progress,.30,.38)*(1-phase(progress,.57,.65)),markets=phase(progress,.66,.74);
-  return <div className="site" ref={track}><div className="scene">
-    <div className="art art--hero" style={{opacity:videoReady?0:1-phase(progress,.25,.39),transform:`scale(${1+progress*.42}) translate3d(${progress*-5}%,${progress*-4}%,0)`}} aria-hidden="true"/>
-    <div className="art art--about" style={{opacity:videoReady?0:phase(progress,.27,.40)*(1-phase(progress,.61,.75)),transform:`scale(${1.07-phase(progress,.27,.65)*.08}) translate3d(${phase(progress,.27,.65)*-2}%,0,0)`}} aria-hidden="true"/>
-    <div className="art art--markets" style={{opacity:videoReady?0:phase(progress,.63,.77),transform:`scale(${1.07-phase(progress,.64,1)*.07})`}} aria-hidden="true"/>
-    <div className={`footage ${progress<.30?'footage--hero':progress<.66?'footage--about':'footage--markets'}`} style={{opacity:videoReady?1:0}} aria-hidden="true"><video ref={videoRef} onLoadedData={()=>setVideoReady(true)} muted playsInline preload="auto"><source src="/assets/ascend-scrub-mobile.mp4" media="(max-width: 700px)" type="video/mp4"/><source src="/assets/ascend-scrub.mp4" type="video/mp4"/></video></div>
-    <header className={`header ${ready?'is-ready':''}`}><a className="brand" href="#top" onClick={e=>{e.preventDefault();jump(0)}} aria-label="Prisma — home"><span className="brand-mark"><Mark/></span><span>Prisma<span className="brand-period">.</span></span></a>
-      <nav className="desktop-nav" aria-label="Main navigation"><a href="#about" onClick={e=>{e.preventDefault();jump(.43)}}>About</a><a href="#markets" onClick={e=>{e.preventDefault();jump(.83)}}>Markets</a><a href={DOCS}>Docs</a></nav>
-      <div className="header-actions"><GlassButton href={APP} small>Launch app</GlassButton><a className="arrow-square" href={APP} aria-label="Launch Prisma app"><ArrowUpRight size={17} strokeWidth={1.6}/></a></div><button className="menu-toggle" type="button" onClick={()=>setMenu(true)} aria-label="Open menu"><Menu size={24} strokeWidth={1.5}/></button>
-    </header>
-    <main>
-      <section id="top" className={`panel hero ${ready?'is-ready':''}`} style={styleFor(hero)} aria-hidden={hero<.01}><div className="hero-main"><p className="eyebrow hero-eyebrow">TOKENIZED EQUITY LENDING</p><h1>Capital for the <em>next</em><br/><em>generation</em> of markets.</h1><div className="hero-cta"><GlassButton href={MARKETS}>Explore markets <ArrowUpRight size={16}/></GlassButton><button className="text-link" type="button" onClick={()=>jump(.43)}>How it works <ArrowRight size={16}/></button></div></div><div className="hero-bottom"><button type="button" onClick={()=>jump(.43)} className="scroll-prompt"><ArrowDown size={15}/> Scroll to discover</button><p>Isolated markets for tokenized shares.<br/>See the asset, loan limit and age of its price.</p></div></section>
-      <section id="about" className="panel about" style={styleFor(about)} aria-hidden={about<.01}><div className="section-content"><p className="kicker"><span>01 / THE PROTOCOL</span><i/></p><h2>Bring your shares<br/>to a market built<br/>for <em>clarity.</em></h2><p className="about-copy">Each market pairs a tokenized asset with its own borrow asset, oracle and liquidation limit. Supply to earn, or post collateral to borrow.</p><GlassButton href={DOCS}>How Prisma works <ArrowUpRight size={16}/></GlassButton></div><div className="section-index">01 — 03</div></section>
-      <section id="markets" className="panel markets" style={styleFor(markets)} aria-hidden={markets<.01}><div className="market-intro"><p className="kicker"><span>02 / MARKETS</span><i/></p><h2><em>Every market.</em><br/>One clear view.</h2><p>Explore tokenized equities, isolated borrowing and price age together. Know what sits behind a position before you act.</p><GlassButton href={MARKETS}>View markets <ArrowUpRight size={16}/></GlassButton></div><div className="market-board" aria-label="Example markets"><div className="board-heading"><span>MARKET PREVIEW</span><span>PRICE AGE <ArrowUpRight size={14}/></span></div><div className="market-grid">{tokens.map(([symbol,name,color,age])=><a className="market-card" href={MARKETS} key={symbol}><span className="token-icon" style={{backgroundColor:color}}>{symbol[0]}</span><span className="token-name"><strong>{symbol}</strong><small>{name}</small></span><span className="token-age">{age}</span><ArrowUpRight className="card-arrow" size={16} strokeWidth={1.4}/></a>)}</div><div className="board-foot">Illustrative preview · open app for current data</div></div><div className="section-index">02 — 03</div></section>
-    </main><div className="progress-rail" aria-hidden="true"><span style={{height:`${Math.max(6,progress*100)}%`}}/></div>
-    <div className={`mobile-menu ${menu?'open':''}`} aria-hidden={!menu}><button className="menu-close" type="button" onClick={()=>setMenu(false)} aria-label="Close menu"><X size={24}/></button><div className="menu-links"><button onClick={()=>jump(0)}>Home</button><button onClick={()=>jump(.43)}>About</button><button onClick={()=>jump(.83)}>Markets</button><a href={DOCS}>Docs</a><a href={APP}>Launch app <ArrowUpRight size={24}/></a></div><span className="menu-caption">PRISMA / TOKENIZED EQUITY LENDING</span></div>
-  </div></div>;
+    const items=document.querySelectorAll<HTMLElement>('.reveal');
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.12});
+    items.forEach(item=>observer.observe(item));return()=>observer.disconnect();
+  },[]);
+  const nav=[['Markets',MARKETS],['How it works','#about'],['Price age','#price-age'],['Docs',DOCS]];
+  return <div className="landing-v2">
+    <section className="landing-hero" id="top">
+      <div className="hero-shader" aria-hidden="true">{canUseShader&&<Suspense fallback={null}><HeroShader/></Suspense>}</div>
+      <div className="hero-foreground">
+        <header className="landing-header"><nav className="landing-nav" aria-label="Main navigation">
+          <div className="landing-nav__left"><a className="landing-logo" href="#top" aria-label="Prisma home"><Mark/></a><div className="landing-nav__links">{nav.map(([label,href])=><a href={href} key={label}>{label}</a>)}</div></div>
+          <div className="landing-nav__right"><span className="landing-nav__descriptor">Tokenized equity lending</span><span className="landing-nav__clock"><Clock3 size={14}/>{time} in New York</span><RollButton href={MARKETS} tone="dark">Launch app</RollButton></div>
+          <button className="landing-menu-toggle" type="button" onClick={()=>setMenuOpen(true)} aria-label="Open menu"><Menu size={20}/></button>
+        </nav></header>
+        <div className="hero-content">
+          <p className="hero-label">PRISMA / ISOLATED LENDING</p>
+          <h1>Every market, <br className="desktop-break"/>a clearer view <br className="desktop-break"/>of the risk.</h1>
+          <p className="hero-description">Borrow against tokenized equities. See the asset, loan limit and age of its price before you act.</p>
+          <div className="hero-actions"><RollButton href={MARKETS}>Explore markets</RollButton><a className="hero-badge" href="#price-age"><span className="hero-badge__mark"><Mark/></span><span>Price age in view</span><span className="hero-badge__tag">PRISMA</span></a></div>
+        </div><span className="hero-corner">01 / 03&nbsp; &nbsp; SCROLL TO EXPLORE</span>
+      </div>
+    </section>
+    <section className="landing-about" id="about"><div className="landing-container">
+      <div className="landing-pad reveal"><Badge number="1">Introducing Prisma</Badge><h2 className="section-title">One asset. One market.<br/>One clear risk.</h2></div>
+      <div className="about-layout landing-pad">
+        <div className="about-small reveal"><img src="/assets/about.webp" alt="Refracted glass with a warm center" loading="lazy"/></div>
+        <div className="about-copy reveal"><p>Each tokenized asset has its own borrow asset, oracle and liquidation limit. Supply stablecoins to earn, or post shares as collateral to borrow.</p><RollButton href={DOCS}>How Prisma works</RollButton></div>
+        <div className="about-large reveal"><img src="/assets/markets.webp" alt="Prismatic glass and light" loading="lazy"/><div className="about-large__caption"><span>ISOLATED BY DESIGN</span><span>MARKET / 001</span></div></div>
+      </div>
+    </div></section>
+    <section className="landing-features" id="price-age"><div className="landing-container landing-pad">
+      <div className="reveal"><Badge number="2">Inside the interface</Badge><h2 className="section-title features-title">The full position.<br/>In one view.</h2></div>
+      <div className="feature-grid">
+        <a className="feature-card feature-card--markets reveal" href={MARKETS}><div className="feature-card__visual">
+          <div className="feature-orbit" aria-hidden="true"><Mark/></div>
+          <div className="market-preview" aria-hidden="true"><div className="market-preview__head"><span>MARKET</span><span>LOAN LIMIT</span><span>PRICE AGE</span></div>
+            <div className="market-preview__row"><strong>SPY <small>/ USDG</small></strong><span>62.5%</span><em>4h 17m</em></div>
+            <div className="market-preview__row"><strong>NVDA <small>/ USDG</small></strong><span>62.5%</span><em>11h 59m</em></div>
+            <div className="market-preview__row"><strong>TSLA <small>/ USDG</small></strong><span>62.5%</span><em>6h 17m</em></div>
+          </div><span className="feature-card__hover"><span>View markets</span><ArrowRight size={16}/></span>
+        </div><p>Explore assets, loan limits, rates and price age together in a single market view.</p><h3>Isolated markets</h3></a>
+        <a className="feature-card feature-card--age reveal" href={DOCS}><div className="feature-card__visual">
+          <div className="age-object" aria-hidden="true"><span className="age-object__inner"><Mark/></span></div>
+          <div className="age-readout" aria-hidden="true"><span>ORACLE PRICE AGE</span><strong>04:17<span>h</span></strong><small>VISIBLE BEFORE YOU ACT</small></div>
+          <span className="feature-card__hover"><span>How it works</span><ArrowRight size={16}/></span>
+        </div><p>The underlying exchange can pause. Prisma keeps the age of the price in view.</p><h3>See the price. See its age.</h3></a>
+      </div><div className="features-footer"><span>PRISMA / TOKENIZED EQUITY LENDING</span><a href="#top">BACK TO TOP ↑</a></div>
+    </div></section>
+    <div className={`landing-menu ${menuOpen?'is-open':''}`} aria-hidden={!menuOpen}><div className="landing-menu__backdrop" onClick={()=>setMenuOpen(false)}/><div className="landing-menu__sheet">
+      <div className="landing-menu__top"><span><Clock3 size={14}/>{time} in New York</span><button type="button" onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X size={20}/></button></div>
+      <div className="landing-menu__links">{nav.map(([label,href],index)=><a href={href} key={label} onClick={()=>setMenuOpen(false)} style={{transitionDelay:menuOpen?`${index*55}ms`:'0ms'}}>{label}<ArrowRight size={24}/></a>)}</div>
+      <RollButton href={MARKETS} tone="dark" className="landing-menu__cta">Launch app</RollButton>
+    </div></div>
+  </div>;
 }
 export default function App(){
- const [route,setRoute]=useState(()=>location.hash.slice(2));
- useEffect(()=>{const change=()=>{setRoute(location.hash.startsWith('#/')?location.hash.slice(2):'');window.scrollTo(0,0)};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);
- return route==='markets'||route==='docs'?<Product route={route}/>:<Landing/>;
+  const [route,setRoute]=useState(()=>location.hash.startsWith('#/')?location.hash.slice(2):'');
+  useEffect(()=>{const change=()=>{const next=location.hash.startsWith('#/')?location.hash.slice(2):'';if(next||document.querySelector('.product-page'))window.scrollTo(0,0);setRoute(next)};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);
+  return route==='markets'||route==='docs'?<Product route={route}/>:<Landing/>;
 }

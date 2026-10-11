@@ -7,13 +7,14 @@ type Market = [string,string,number,number,number,number,string,string,number,st
 const markets = marketData as Market[];
 const compact=(n:number)=>n>=1e6?`${(n/1e6).toFixed(2)}M`:n>=1e3?`${(n/1e3).toFixed(1)}K`:n.toFixed(0);
 function SymbolIcon({symbol}:{symbol:string}){const [failed,setFailed]=useState(false);return <span className="product-icon">{!failed&&<img src={tokenLogo(symbol)} alt="" onError={()=>setFailed(true)}/>}<b>{symbol.slice(0,2)}</b></span>}
+function ProductMark(){return <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 2.5c1.5 12.6 8.9 20 21.5 21.5C32.9 25.5 25.5 32.9 24 45.5 22.5 32.9 15.1 25.5 2.5 24 15.1 22.5 22.5 15.1 24 2.5Z" fill="currentColor"/></svg>}
 function GlassLink({href,children}:{href:string;children:React.ReactNode}){return <a className="glass-button product-button" href={href}>{children}</a>}
 export default function Product({route}:{route:string}){
  const [query,setQuery]=useState('');const [tab,setTab]=useState<'equity'|'other'>('equity');const [selected,setSelected]=useState<string|null>(null);const [notice,setNotice]=useState(false);
  const docs=route==='docs';
  const visible=useMemo(()=>markets.filter(m=>m[7]===tab&&`${m[0]} ${m[1]}`.toLowerCase().includes(query.toLowerCase())),[tab,query]);
  const market=markets.find(m=>m[9]===selected);
- return <div className="product-page"><header className="product-header"><a className="product-brand" href="#/" aria-label="Prisma home"><span className="product-star">✦</span> Prisma<span className="brand-period">.</span></a><nav><a className={!docs?'active':''} href="#/markets">Markets</a><a className={docs?'active':''} href="#/docs">Docs</a><a href="#/">Home ↗</a></nav><button type="button" className="glass-button product-connect" onClick={()=>setNotice(true)}>Connect wallet</button></header>
+ return <div className="product-page"><header className="product-header"><a className="product-brand" href="#/" aria-label="Prisma home"><span className="product-star"><ProductMark/></span> Prisma<span className="brand-period">.</span></a><nav><a className={!docs?'active':''} href="#/markets">Markets</a><a className={docs?'active':''} href="#/docs">Docs</a><a href="#/">Home ↗</a></nav><button type="button" className="glass-button product-connect" onClick={()=>setNotice(true)}>Connect wallet</button></header>
  {docs?<main className="product-main docs-main"><p className="product-kicker">THE PROTOCOL / 01</p><h1>How Prisma <em>works.</em></h1><p className="product-lede">An interface for isolated lending against tokenized equities. The market, loan limit and price age sit together before a decision.</p><div className="doc-grid">{[
  ['01','Isolated markets','Each collateral asset is paired with a borrow asset, an oracle and its own liquidation limit. Risk is contained within that market.'],
  ['02','Supply or borrow','Supply stablecoins to earn a variable rate, or post tokenized shares as collateral to draw against them. Available liquidity can change.'],
