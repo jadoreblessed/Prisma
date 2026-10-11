@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import GlassButton from './GlassButton';
-import ParticleField from './ParticleField';
 import { equityAssets, markets as marketData, tokenLogo } from './marketData';
 import './LandingSections.css';
 import './PrismaScenes.css';
@@ -37,30 +36,30 @@ const ageMoments = [
 function MarketSignal(){
   const [selected,setSelected]=useState(0);
   const market=signalMarkets[selected];
-  return <section className="signal-scene reveal" aria-label="Illustrative market context">
-    <ParticleField/>
-    <div className="signal-grain" aria-hidden="true"/>
-    <div className="signal-head"><span>01 / MARKET CONTEXT</span><span>PRISMA — INTERFACE PREVIEW</span></div>
-    <div className="signal-body"><div className="signal-intro"><span className="signal-kicker"><i/> THE WHOLE POSITION</span><h3>Clarity lives<br/>in the <em>details.</em></h3><p>Choose a market. Its asset, lending activity, limit and price age come into focus together.</p><div className="signal-tabs" role="group" aria-label="Select a market">{signalMarkets.map((item,i)=><button type="button" key={item.symbol} className={selected===i?'active':''} aria-pressed={selected===i} onClick={()=>setSelected(i)}><img src={tokenLogo(item.symbol)} alt=""/>{item.symbol}<span>↗</span></button>)}</div></div>
-    <div className="signal-display" key={market.symbol}><div className="signal-scan" aria-hidden="true"/><div className="signal-display-top"><span>MARKET / {String(selected+1).padStart(2,'0')}</span><span className="signal-live"><i/> SAMPLE DATA</span></div><div className="signal-asset"><img src={tokenLogo(market.symbol)} alt=""/><div><span>TOKENIZED EQUITY / {market.feed}</span><strong>{market.symbol}<small> / USDG</small></strong><p>{market.name}</p></div></div><div className="signal-divider"/><div className="signal-values"><div><span>LOAN LIMIT</span><b>{market.limit}</b></div><div><span>TOTAL SUPPLIED</span><b>{market.supply}</b></div><div><span>TOTAL BORROWED</span><b>{market.borrow}</b></div></div><div className="signal-age"><div><span>LAST PRICE UPDATE</span><strong>{market.age} ago</strong></div><div className="signal-pulse" aria-hidden="true"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div></div></div></div>
-    <div className="signal-foot"><span>ISOLATED MARKET / ONE COLLATERAL / ONE LIMIT</span><span>SELECT A MARKET ABOVE ↑</span></div>
+  return <section className="ledger reveal" aria-label="Illustrative market sheet">
+    <div className="ledger-top"><span>PRISMA / MARKET SHEET</span><span>01 — READ THE MARKET</span></div>
+    <div className="ledger-title"><div><span>ONE COLLATERAL. ONE BORROW ASSET.</span><h3>A market with<br/>nothing hidden.</h3></div><p>The useful numbers belong together. Select a market to see its collateral, loan limit and age of the last price update.</p></div>
+    <div className="ledger-workspace">
+      <div className="ledger-index"><div className="ledger-index-title">MARKET INDEX <span>03 / SAMPLE</span></div>{signalMarkets.map((item,i)=><button type="button" key={item.symbol} className={selected===i?'active':''} onClick={()=>setSelected(i)} aria-pressed={selected===i}><span className="ledger-index-no">0{i+1}</span><img src={tokenLogo(item.symbol)} alt=""/><span className="ledger-index-name"><b>{item.symbol}</b><small>{item.name}</small></span><span className="ledger-index-arrow" aria-hidden="true">↗</span></button>)}<small className="ledger-index-note">Tap a row to inspect the market.</small></div>
+      <div className="ledger-sheet" key={market.symbol}><div className="ledger-sheet-top"><span>ISOLATED LENDING / {market.feed}</span><span>USDG MARKET</span></div><div className="ledger-pair"><img src={tokenLogo(market.symbol)} alt=""/><strong>{market.symbol}<span> / USDG</span></strong></div><div className="ledger-metrics"><div><span>COLLATERAL</span><b>{market.symbol}</b></div><div><span>LOAN LIMIT</span><b>{market.limit}</b></div><div><span>TOTAL SUPPLIED</span><b>{market.supply}</b></div><div><span>TOTAL BORROWED</span><b>{market.borrow}</b></div></div><div className="ledger-age"><span>PRICE UPDATED</span><strong>{market.age} ago</strong><span className="ledger-age-rule" aria-hidden="true"/></div></div>
+    </div><div className="ledger-bottom"><span>FIGURES ARE ILLUSTRATIVE, NOT LIVE</span><span>ONE MARKET / ONE RISK PROFILE</span></div>
   </section>;
 }
 function PriceAgeScene(){
   const [active,setActive]=useState(0);
   const moment=ageMoments[active];
   useEffect(()=>{
-    const node=document.querySelector('.age-scene');
+    const node=document.querySelector('.disclosure');
     if(!node || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let timer:number|undefined;
     const observer=new IntersectionObserver(([entry])=>{
-      if(entry.isIntersecting && timer===undefined) timer=window.setInterval(()=>setActive(index=>(index+1)%ageMoments.length),3200);
+      if(entry.isIntersecting && timer===undefined) timer=window.setInterval(()=>setActive(index=>(index+1)%ageMoments.length),3600);
       else if(!entry.isIntersecting && timer!==undefined){window.clearInterval(timer);timer=undefined;}
-    },{threshold:.35});
+    },{threshold:.3});
     observer.observe(node);
     return ()=>{observer.disconnect();if(timer!==undefined)window.clearInterval(timer);};
   },[]);
-  return <section className="age-scene reveal" id="price-age" aria-label="Illustrative price age sequence"><div className="age-noise" aria-hidden="true"/><div className="age-top"><span>02 / PRICE AGE</span><span>AN EXCHANGE HAS HOURS. A POSITION DOESN’T.</span></div><div className="age-layout"><div className="age-editorial"><span className="age-small">WHY THE AGE MATTERS</span><h3>A price can pause.<br/><em>Your position doesn’t.</em></h3><p>When the exchange closes, the last price may stay on screen while a loan continues to accrue. Prisma places its age beside the market, before you act.</p></div><div className="age-clock" aria-live="polite"><div className="age-clock-head"><span>LAST PUBLISHED PRICE</span><span>FRI / 16:00</span></div><div className="age-digits" key={moment.age}><strong>{moment.age}</strong><span>{moment.unit}<i>OLD</i></span></div><div className="age-orbit" aria-hidden="true"/><div className="age-clock-caption"><span>{moment.day} · {moment.time}</span><strong>{moment.title}</strong><p>{moment.detail}</p></div></div></div><div className="age-diagrams" aria-label="Three parts of a Prisma market"><div className="age-diagram"><div className="age-diagram-art age-diagram-orbit" aria-hidden="true"><i/><i/><i/><i/><b/></div><span>01 / MARKET</span><h4>Isolated by design</h4><p>Each collateral asset has its own borrow asset, price feed and loan limit.</p></div><div className="age-diagram"><div className="age-diagram-art age-diagram-depth" aria-hidden="true"><i/><i/><i/><i/><i/><b/></div><span>02 / POSITION</span><h4>Lend and borrow</h4><p>Supply stablecoins or post tokenized shares and borrow against them.</p></div><div className="age-diagram"><div className="age-diagram-art age-diagram-flow" aria-hidden="true">{Array.from({length:9},(_,i)=><i key={i} style={{'--line':i} as React.CSSProperties}/>)}</div><span>03 / PRICE AGE</span><h4>Time in view</h4><p>See when the price behind a market last moved before deciding.</p></div></div><div className="age-timeline" role="group" aria-label="Weekend price age timeline">{ageMoments.map((item,i)=><button type="button" key={item.day} className={active===i?'active':''} aria-pressed={active===i} onClick={()=>setActive(i)}><span className="age-timeline-dot"/><span>{item.day}</span><small>{item.time}</small></button>)}</div><div className="age-bottom"><span>ONE PRICE HELD / TIME VISIBLE</span><span>ILLUSTRATIVE WEEKEND SEQUENCE</span></div></section>;
+  return <section className="disclosure reveal" id="price-age" aria-label="Illustrative exchange weekend sequence"><div className="disclosure-top"><span>02 / THE TIME BETWEEN PRICES</span><span>FRIDAY → MONDAY</span></div><div className="disclosure-head"><span>PRICE AGE IN VIEW</span><h3>Markets close.<br/>Positions remain.</h3><p>The price behind a tokenized share can pause when its exchange closes. A loan can continue accruing while that number stays still.</p></div><div className="disclosure-stage"><div className="disclosure-hour" key={moment.age}><span>THE DISPLAYED PRICE IS</span><div><strong>{moment.age}</strong><em>hours<br/>old</em></div></div><div className="disclosure-event" key={moment.day}><span>{moment.day} / {moment.time}</span><h4>{moment.title}</h4><p>{moment.detail}</p></div></div><div className="disclosure-rail" role="group" aria-label="Choose a day of the weekend">{ageMoments.map((item,i)=><button type="button" key={item.day} className={active===i?'active':''} aria-pressed={active===i} onClick={()=>setActive(i)}><span className="disclosure-rail-line"/><span>{item.day}</span><small>{item.time}</small></button>)}</div><div className="disclosure-bottom"><span>PRISMA SHOWS THE AGE. THE DECISION STAYS YOURS.</span><span>ILLUSTRATIVE SEQUENCE</span></div></section>;
 }
 function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <div className={`ch-frame ch-frame--${kind||'default'} reveal`}><div className="ch-frame-inner">{children}</div></div>}
 export default function LandingSections(){
