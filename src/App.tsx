@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type PointerEvent } from 'react';
 import { ArrowDown, ArrowRight, ArrowUpRight, Menu, X } from 'lucide-react';
+import Product from './Product';
 
-const APP = 'https://prisma-credit.jadorealure.chatgpt.site/app';
-const MARKETS = APP;
-const DOCS = 'https://prisma-credit.jadorealure.chatgpt.site/docs';
+const APP = '#/markets';
+const MARKETS = '#/markets';
+const DOCS = '#/docs';
 const tokens = [
   ['SPY','S&P 500 ETF','#1647dc','4h 17m'], ['NVDA','NVIDIA','#83ba18','11h 59m'],
   ['TSLA','Tesla','#db2636','6h 17m'], ['CRWV','CoreWeave','#414478','48m'],
@@ -26,16 +27,40 @@ function useScene(){
   const go=(p:number)=>{const el=track.current;if(el)window.scrollTo({top:el.offsetTop+p*(el.offsetHeight-window.innerHeight),behavior:'smooth'})};
   return {track,progress,go};
 }
-export default function App(){
+function Landing(){
   const {track,progress,go}=useScene();const [menu,setMenu]=useState(false);const [ready,setReady]=useState(false);
+  const [videoReady,setVideoReady]=useState(false);
+  const videoRef=useRef<HTMLVideoElement>(null);
   useEffect(()=>{const id=requestAnimationFrame(()=>setReady(true));return()=>cancelAnimationFrame(id)},[]);
   useEffect(()=>{document.body.style.overflow=menu?'hidden':'';return()=>{document.body.style.overflow=''}},[menu]);
+  useEffect(()=>{
+    const video=videoRef.current;if(!video)return;
+    let frame=0,last=performance.now(),current=0,target=0,stopped=false;
+    const tick=(now:number)=>{
+      if(stopped)return;
+      const el=track.current;
+      const span=Math.max(1,(el?.offsetHeight||window.innerHeight)-window.innerHeight);
+      target=clamp((window.scrollY-(el?.offsetTop||0))/span)*(Number.isFinite(video.duration)?video.duration:0);
+      const dt=Math.min(.1,(now-last)/1000);last=now;
+      current+=(target-current)*(1-Math.exp(-11*dt));
+      if(Math.abs(target-current)<.006)current=target;
+      if(video.readyState>=1&&!video.seeking&&Math.abs(video.currentTime-current)>.018){try{video.currentTime=Math.min(current,Math.max(0,video.duration-.025))}catch{/* wait for metadata */}}
+      frame=requestAnimationFrame(tick);
+    };
+    const unlock=()=>{video.play().then(()=>{video.pause();video.currentTime=current}).catch(()=>{})};
+    video.addEventListener('loadedmetadata',()=>{video.pause();video.currentTime=0});
+    window.addEventListener('pointerdown',unlock,{once:true});
+    window.addEventListener('touchstart',unlock,{once:true});
+    frame=requestAnimationFrame(tick);
+    return()=>{stopped=true;cancelAnimationFrame(frame);window.removeEventListener('pointerdown',unlock);window.removeEventListener('touchstart',unlock);video.pause()};
+  },[track]);
   const jump=(p:number)=>{setMenu(false);go(p)};
   const hero=1-phase(progress,.19,.29),about=phase(progress,.30,.38)*(1-phase(progress,.57,.65)),markets=phase(progress,.66,.74);
   return <div className="site" ref={track}><div className="scene">
-    <div className="art art--hero" style={{opacity:1-phase(progress,.25,.39),transform:`scale(${1+progress*.42}) translate3d(${progress*-5}%,${progress*-4}%,0)`}} aria-hidden="true"/>
-    <div className="art art--about" style={{opacity:phase(progress,.27,.40)*(1-phase(progress,.61,.75)),transform:`scale(${1.07-phase(progress,.27,.65)*.08}) translate3d(${phase(progress,.27,.65)*-2}%,0,0)`}} aria-hidden="true"/>
-    <div className="art art--markets" style={{opacity:phase(progress,.63,.77),transform:`scale(${1.07-phase(progress,.64,1)*.07})`}} aria-hidden="true"/>
+    <div className="art art--hero" style={{opacity:videoReady?0:1-phase(progress,.25,.39),transform:`scale(${1+progress*.42}) translate3d(${progress*-5}%,${progress*-4}%,0)`}} aria-hidden="true"/>
+    <div className="art art--about" style={{opacity:videoReady?0:phase(progress,.27,.40)*(1-phase(progress,.61,.75)),transform:`scale(${1.07-phase(progress,.27,.65)*.08}) translate3d(${phase(progress,.27,.65)*-2}%,0,0)`}} aria-hidden="true"/>
+    <div className="art art--markets" style={{opacity:videoReady?0:phase(progress,.63,.77),transform:`scale(${1.07-phase(progress,.64,1)*.07})`}} aria-hidden="true"/>
+    <div className={`footage ${progress<.30?'footage--hero':progress<.66?'footage--about':'footage--markets'}`} style={{opacity:videoReady?1:0}} aria-hidden="true"><video ref={videoRef} onLoadedData={()=>setVideoReady(true)} muted playsInline preload="auto"><source src="/assets/ascend-scrub-mobile.mp4" media="(max-width: 700px)" type="video/mp4"/><source src="/assets/ascend-scrub.mp4" type="video/mp4"/></video></div>
     <header className={`header ${ready?'is-ready':''}`}><a className="brand" href="#top" onClick={e=>{e.preventDefault();jump(0)}} aria-label="Prisma — home"><span className="brand-mark"><Mark/></span><span>Prisma<span className="brand-period">.</span></span></a>
       <nav className="desktop-nav" aria-label="Main navigation"><a href="#about" onClick={e=>{e.preventDefault();jump(.43)}}>About</a><a href="#markets" onClick={e=>{e.preventDefault();jump(.83)}}>Markets</a><a href={DOCS}>Docs</a></nav>
       <div className="header-actions"><GlassButton href={APP} small>Launch app</GlassButton><a className="arrow-square" href={APP} aria-label="Launch Prisma app"><ArrowUpRight size={17} strokeWidth={1.6}/></a></div><button className="menu-toggle" type="button" onClick={()=>setMenu(true)} aria-label="Open menu"><Menu size={24} strokeWidth={1.5}/></button>
@@ -47,4 +72,9 @@ export default function App(){
     </main><div className="progress-rail" aria-hidden="true"><span style={{height:`${Math.max(6,progress*100)}%`}}/></div>
     <div className={`mobile-menu ${menu?'open':''}`} aria-hidden={!menu}><button className="menu-close" type="button" onClick={()=>setMenu(false)} aria-label="Close menu"><X size={24}/></button><div className="menu-links"><button onClick={()=>jump(0)}>Home</button><button onClick={()=>jump(.43)}>About</button><button onClick={()=>jump(.83)}>Markets</button><a href={DOCS}>Docs</a><a href={APP}>Launch app <ArrowUpRight size={24}/></a></div><span className="menu-caption">PRISMA / TOKENIZED EQUITY LENDING</span></div>
   </div></div>;
+}
+export default function App(){
+ const [route,setRoute]=useState(()=>location.hash.slice(2));
+ useEffect(()=>{const change=()=>{setRoute(location.hash.startsWith('#/')?location.hash.slice(2):'');window.scrollTo(0,0)};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);
+ return route==='markets'||route==='docs'?<Product route={route}/>:<Landing/>;
 }
