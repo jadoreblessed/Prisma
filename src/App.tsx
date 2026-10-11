@@ -21,7 +21,7 @@ function Landing() {
   const nav=[['Markets',MARKETS],['How it works','#about'],['Price age','#price-age'],['Docs',DOCS]];
   return <div className="landing-v2">
     <section className="landing-hero" id="top">
-      <div className="hero-shader" aria-hidden="true">{canUseShader&&<Suspense fallback={null}><HeroShader/></Suspense>}</div>
+      <div className="hero-shader" aria-hidden="true">{canUseShader?<Suspense fallback={null}><HeroShader/></Suspense>:<div className="hero-fallback"><div className="hero-fallback__halo"/><div className="hero-fallback__lens"><PrismaMark/></div></div>}</div>
       <div className="hero-foreground">
         <header className="landing-header"><nav className="landing-nav" aria-label="Main navigation">
           <div className="landing-nav__left"><a className="landing-logo" href="#top" aria-label="Prisma home"><PrismaMark/></a><div className="landing-nav__links">{nav.map(([label,href])=><a href={href} key={label}>{label}</a>)}</div></div>
@@ -33,7 +33,7 @@ function Landing() {
           <h1>Every market, <br className="desktop-break"/>a clearer view <br className="desktop-break"/>of the risk.</h1>
           <p className="hero-description">Borrow against tokenized equities. See the asset, loan limit and age of its price before you act.</p>
           <div className="hero-actions"><GlassButton href={MARKETS} arrow>Explore markets</GlassButton><span className="hero-badge">CA coming soon</span></div>
-        </div><span className="hero-corner">01 / 03&nbsp; &nbsp; SCROLL TO EXPLORE</span>
+        </div><span className="hero-corner">01 / 02&nbsp; &nbsp; SCROLL TO EXPLORE</span>
       </div>
     </section>
     <LandingSections/>
@@ -47,5 +47,5 @@ function Landing() {
 export default function App(){
   const [route,setRoute]=useState(()=>location.hash.startsWith('#/')?location.hash.slice(2):'');
   useEffect(()=>{const change=()=>{const next=location.hash.startsWith('#/')?location.hash.slice(2):'';if(next||document.querySelector('.product-page'))window.scrollTo(0,0);setRoute(next)};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);
-  return ['markets','vaults','stake','docs','faq'].includes(route)?<Product route={route}/>:<Landing/>;
+  return ['markets','vaults','stake','claim','docs','faq'].includes(route)?<Product route={route}/>:<Landing/>;
 }
