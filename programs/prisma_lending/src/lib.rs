@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::pubkey;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 use chainlink_solana::v2::read_feed_v2;
 
@@ -7,12 +8,16 @@ declare_id!("HYDdzcdDmcGJfVd5oXAKJ4MLrJQNFuekuAgvXZgNwnPG");
 const BPS: u128 = 10_000;
 const YEAR_SECONDS: u128 = 31_536_000;
 const WAD: u128 = 1_000_000_000_000_000_000;
+const CHAINLINK_PROGRAM_ID: Pubkey = pubkey!("HEvSKofvBgfaexv23kMabbYqxasxU3mQ4ibBMEmJWHny");
+const MAX_FUTURE_ORACLE_DRIFT_SECONDS: i64 = 30;
 
 #[program]
 pub mod prisma_lending {
     use super::*;
 
     pub fn initialize_market(ctx: Context<InitializeMarket>, args: InitializeMarketArgs) -> Result<()> {
+        require_keys_neq!(ctx.accounts.collateral_mint.key(), ctx.accounts.borrow_mint.key(), PrismaError::InvalidRiskParameters);
+        require_keys_eq!(*ctx.accounts.oracle.owner, CHAINLINK_PROGRAM_ID, PrismaError::InvalidOracleOwner);
         require!(args.loan_to_value_bps < args.liquidation_threshold_bps, PrismaError::InvalidRiskParameters);
         require!(args.liquidation_threshold_bps < 10_000, PrismaError::InvalidRiskParameters);
         require!(args.liquidation_bonus_bps <= 2_000, PrismaError::InvalidRiskParameters);
@@ -20,6 +25,7 @@ pub mod prisma_lending {
         require!(args.max_oracle_age_seconds >= 30, PrismaError::InvalidRiskParameters);
         require!(ctx.accounts.collateral_mint.decimals <= 18, PrismaError::UnsupportedDecimals);
         require!(ctx.accounts.borrow_mint.decimals <= 18, PrismaError::UnsupportedDecimals);
+        validate_feed(&ctx.accounts.oracle)?;
         let market = &mut ctx.accounts.market;
         market.authority = ctx.accounts.authority.key();
         market.pending_authority = Pubkey::default();
@@ -76,6 +82,7 @@ pub mod prisma_lending {
         require!(amount > 0, PrismaError::InvalidAmount);
         let market = &mut ctx.accounts.market;
         require!(!market.paused, PrismaError::MarketPaused);
+        accrue_market(market)?;
         require!(market.total_supplied.checked_add(amount).ok_or(PrismaError::MathOverflow)? <= market.supply_cap, PrismaError::SupplyCapExceeded);
         let shares = if market.total_supply_shares == 0 || market.total_supplied == 0 {
             amount as u128
@@ -96,6 +103,7 @@ pub mod prisma_lending {
 
     pub fn withdraw_supply(ctx: Context<WithdrawSupply>, amount: u64) -> Result<()> {
         require!(amount > 0 && ctx.accounts.market.total_supplied > 0 && ctx.accounts.market.total_supply_shares > 0, PrismaError::InvalidAmount);
+        accrue_market(&mut ctx.accounts.market)?;
         let claim = ctx.accounts.lender.shares.checked_mul(ctx.accounts.market.total_supplied as u128).ok_or(PrismaError::MathOverflow)?
             .checked_div(ctx.accounts.market.total_supply_shares).ok_or(PrismaError::MathOverflow)?;
         require!((amount as u128) <= claim, PrismaError::InvalidAmount);
@@ -225,21 +233,34 @@ pub mod prisma_lending {
 }
 
 fn read_price(feed: &UncheckedAccount, max_age: u32) -> Result<OraclePrice> {
+    require_keys_eq!(*feed.owner, CHAINLINK_PROGRAM_ID, PrismaError::InvalidOracleOwner);
     let data = feed.try_borrow_data()?;
     let parsed = read_feed_v2(data, feed.owner.to_bytes()).map_err(|_| error!(PrismaError::OracleReadFailed))?;
     let round = parsed.latest_round_data().ok_or(PrismaError::OracleRoundMissing)?;
     require!(round.answer > 0, PrismaError::InvalidOraclePrice);
     let now = Clock::get()?.unix_timestamp;
+    require!((round.timestamp as i64) <= now.saturating_add(MAX_FUTURE_ORACLE_DRIFT_SECONDS), PrismaError::InvalidOracleTimestamp);
     require!(now.saturating_sub(round.timestamp as i64) <= max_age as i64, PrismaError::StaleOraclePrice);
     require!(parsed.decimals() <= 18, PrismaError::UnsupportedDecimals);
     Ok(OraclePrice { value: round.answer as u128, decimals: parsed.decimals() })
 }
 
+fn validate_feed(feed: &UncheckedAccount) -> Result<()> {
+    let data = feed.try_borrow_data()?;
+    let parsed = read_feed_v2(data, feed.owner.to_bytes()).map_err(|_| error!(PrismaError::OracleReadFailed))?;
+    let round = parsed.latest_round_data().ok_or(PrismaError::OracleRoundMissing)?;
+    require!(round.answer > 0, PrismaError::InvalidOraclePrice);
+    require!(round.timestamp > 0, PrismaError::InvalidOracleTimestamp);
+    require!(parsed.decimals() <= 18, PrismaError::UnsupportedDecimals);
+    Ok(())
+}
+
 fn accrue_market(market: &mut Account<Market>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     if market.total_borrowed == 0 { market.last_accrual_timestamp = now; return Ok(()); }
-    let elapsed = now.saturating_sub(market.last_accrual_timestamp) as u128;
-    if elapsed == 0 { return Ok(()); }
+    let elapsed_seconds = now.saturating_sub(market.last_accrual_timestamp);
+    if elapsed_seconds <= 0 { return Ok(()); }
+    let elapsed = elapsed_seconds as u128;
     let rate_factor = (market.borrow_rate_bps as u128)
         .checked_mul(elapsed).ok_or(PrismaError::MathOverflow)?
         .checked_mul(WAD).ok_or(PrismaError::MathOverflow)?
@@ -443,6 +464,8 @@ pub enum PrismaError {
     #[msg("Oracle price is invalid")] InvalidOraclePrice,
     #[msg("Oracle read failed")] OracleReadFailed,
     #[msg("Oracle has no completed round")] OracleRoundMissing,
+    #[msg("Oracle account is not owned by the approved Chainlink program")] InvalidOracleOwner,
+    #[msg("Oracle timestamp is invalid or too far in the future")] InvalidOracleTimestamp,
     #[msg("Math overflow")] MathOverflow,
     #[msg("Invalid authority")] InvalidAuthority,
     #[msg("Token or oracle decimals above 18 are unsupported")] UnsupportedDecimals,
@@ -465,5 +488,11 @@ mod tests {
         let opening = debt_capacity(1_000000, price, 6, 6, 5_000).unwrap();
         let liquidation = debt_capacity(1_000000, price, 6, 6, 6_250).unwrap();
         assert!(liquidation > opening);
+    }
+
+    #[test]
+    fn debt_rounds_up_so_fractional_owed_value_is_not_lost() {
+        assert_eq!(debt_from_shares(1, WAD + 1).unwrap(), 2);
+        assert_eq!(debt_from_shares(10, WAD).unwrap(), 10);
     }
 }

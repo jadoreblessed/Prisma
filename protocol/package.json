@@ -3,11 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preflight": "tsx scripts/preflight-mainnet.ts",
     "resolve": "tsx scripts/resolve-mainnet-config.ts",
-    "initialize": "tsx scripts/initialize-mainnet.ts"
+    "initialize": "tsx scripts/initialize-mainnet.ts",
+    "verify": "tsx scripts/verify-mainnet.ts",
+    "export-env": "tsx scripts/export-deployment-env.ts",
+    "status": "tsx scripts/status-mainnet.ts",
+    "configure": "tsx scripts/configure-mainnet.ts",
+    "propose-authority": "tsx scripts/propose-market-authority.ts",
+    "accept-authority": "tsx scripts/accept-market-authority.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.31.1",
+    "@solana/spl-token": "0.4.14",
     "@solana/web3.js": "^1.98.4",
     "tsx": "^4.20.6"
   }

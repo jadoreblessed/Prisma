@@ -22,10 +22,10 @@ npm run build
 The release is intentionally fail-closed. Initialization always creates a paused market with both caps set to zero, so deployment cannot accept USDC or NVDAx.
 
 ```bash
-npm --prefix protocol install
-bash scripts/release-mainnet.sh
+npm --prefix protocol ci
+bash scripts/release-mainnet.sh --wallet /path/to/deployer.json --rpc https://YOUR-RPC --feed OFFICIAL_CHAINLINK_FEED
 ```
 
-The script verifies the Solana mainnet genesis hash, official mint owners and Chainlink feed owner before building and deploying. See `mainnet/README.md` for wallet, RPC, audit, multisig and activation requirements.
+The script verifies the Solana mainnet genesis hash, deploy wallet balance, official mint owners, incompatible Token-2022 extensions, Chainlink feed owner, binary size and every post-deploy address before it succeeds. It stores a reproducible deployment record and keeps transactions disabled. See `mainnet/README.md` for the exact command, wallet/RPC requirements, authority handoff and the separate activation gate.
 
 Publish `dist` to a static host. Hash routes work without server rewrites. WebGPU powers the hero shader when available and the video fallback keeps the page readable on unsupported devices.

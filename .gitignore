@@ -5,6 +5,9 @@ target/
 protocol/node_modules/
 mainnet/market.json
 mainnet/deployment.json
+mainnet/program.json
+mainnet/frontend.env
+mainnet/keys/
 **/*-keypair.json
 .env
 .env.*
