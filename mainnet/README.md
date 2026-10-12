@@ -6,6 +6,12 @@ To unblock a release, implement signed v10 report retrieval and onchain verifica
 
 The planned market remains fail-closed: its initializer writes `paused = true`, `supply_cap = 0`, and `borrow_cap = 0`.
 
+## Strict 0.05 SOL deployment ceiling
+
+The preflight refuses a deployer funded with more than 0.05 SOL and, after the `.so` is built, refuses a conservative rent-plus-fees estimate above 0.05 SOL before submitting transactions. Use a dedicated deploy keypair; never move a seed phrase to the frontend. This ceiling does not make an unsupported oracle safe or guarantee that a program of arbitrary size can be deployed. The current NVDAx oracle incompatibility remains a separate hard stop.
+
+To estimate rent without spending SOL after building, run `wc -c < target/deploy/prisma_lending.so` and `solana rent <PROGRAM_DATA_BYTES> --url <MAINNET_RPC>`; the release estimates program data at twice the compiled size plus 48 bytes and also budgets market/vault accounts and fees. Solana may require more for an interrupted/retried deployment, so the dedicated wallet limit is the final bound on actual spending.
+
 ## What the release command does
 
 1. refuses every cluster except Solana mainnet-beta by checking the genesis hash;
