@@ -25,6 +25,7 @@ export default function MarketAct() {
   const [selected, setSelected] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
   const [canUseShader] = useState(() => typeof navigator !== 'undefined' && 'gpu' in navigator && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [shaderInRange, setShaderInRange] = useState(false);
   const market = markets[selected];
   const moment = moments[momentIndex];
 
@@ -52,6 +53,13 @@ export default function MarketAct() {
     if (pointerFrame.current !== null) cancelAnimationFrame(pointerFrame.current);
   }, []);
 
+  useEffect(() => {
+    if (!canUseShader || !track.current) return;
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setShaderInRange(true); observer.disconnect(); } }, { rootMargin: '350px 0px' });
+    observer.observe(track.current);
+    return () => observer.disconnect();
+  }, [canUseShader]);
+
   const moveLight = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch' || pointerFrame.current !== null) return;
     const { clientX, clientY } = event;
@@ -78,7 +86,7 @@ export default function MarketAct() {
     <div className={`market-act ${phase === 1 ? 'market-act--age' : ''}`} ref={stage} onPointerMove={moveLight} onPointerLeave={() => { if (pointerFrame.current !== null) cancelAnimationFrame(pointerFrame.current); pointerFrame.current = null; stage.current?.style.removeProperty('--light-x'); stage.current?.style.removeProperty('--light-y'); }}>
       <div className="market-act-background" aria-hidden="true">
         <div className="market-act-background-fallback" />
-        {canUseShader && <Suspense fallback={null}><HeroShader /></Suspense>}
+        {canUseShader && shaderInRange && <Suspense fallback={null}><HeroShader /></Suspense>}
       </div>
       <div className="market-act-progress"><span ref={progressBar} /></div>
       <header className="market-act-header"><span>{phase === 0 ? '01 / THE MARKET' : '02 / PRICE AGE'}</span></header>
