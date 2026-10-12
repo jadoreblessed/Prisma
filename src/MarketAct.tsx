@@ -55,7 +55,7 @@ export default function MarketAct() {
     <span className="market-act-age-anchor" id="price-age" aria-hidden="true" />
     <div className={`market-act ${phase === 1 ? 'market-act--age' : ''}`}>
       <div className="market-act-progress"><span ref={progressBar} /></div>
-      <header className="market-act-header"><span>PRISMA <i /> MARKET CONTEXT</span><span>{phase === 0 ? '01 / THE MARKET' : '02 / PRICE AGE'}</span></header>
+      <header className="market-act-header"><span>{phase === 0 ? '01 / THE MARKET' : '02 / PRICE AGE'}</span></header>
 
       <div className="market-act-scene market-act-scene--market" aria-hidden={phase === 1}>
         <div className="market-act-copy"><span className="market-act-kicker">ONE ASSET / ONE LIMIT</span><h2>See the<br/>whole<br/><em>market.</em></h2><p>Before a position is opened: the collateral, borrow asset, loan limit and age of its price, all in one view.</p></div>
@@ -70,7 +70,7 @@ export default function MarketAct() {
 
       <div className="market-act-scene market-act-scene--age" aria-hidden={phase === 0}>
         <div className="market-act-copy"><span className="market-act-kicker">THE NUMBER BEHIND THE PRICE</span><h2>A quote<br/>can stop.<br/><em>Time won’t.</em></h2><p>When the underlying exchange closes, the last price may remain on screen. Prisma shows its age beside the market before you act.</p></div>
-        <div className="market-act-clock"><div className="market-act-clock-top"><span>LAST PUBLISHED PRICE</span><span>FRIDAY / 16:00</span></div><div className="market-act-hours" key={moment.hours}><strong>{moment.hours}</strong><span>HOURS<br/>OLD</span></div><div className="market-act-status"><span>{moment.day} / {moment.time}</span><b>{moment.status}</b><p>{moment.note}</p></div><div className="market-act-days" role="group" aria-label="Choose a point in time">{moments.map((item, index) => <button key={item.day} type="button" tabIndex={phase === 0 ? -1 : 0} aria-pressed={momentIndex === index} onClick={() => goToMoment(index)} className={momentIndex === index ? 'active' : ''}><i aria-hidden="true"/><span>{item.day}</span><small>{item.time}</small></button>)}</div></div>
+        <div className="market-act-clock"><div className="market-act-hours" key={moment.hours}><strong>{moment.hours}</strong><span>HOURS<br/>OLD</span></div><div className="market-act-status"><span>{moment.day} / {moment.time}</span><b>{moment.status}</b><p>{moment.note}</p></div><div className="market-act-days" role="group" aria-label="Choose a point in time">{moments.map((item, index) => <button key={item.day} type="button" tabIndex={phase === 0 ? -1 : 0} aria-pressed={momentIndex === index} onClick={() => goToMoment(index)} className={momentIndex === index ? 'active' : ''}><i aria-hidden="true"/><span>{item.day}</span><small>{item.time}</small></button>)}</div></div>
       </div>
 
       <footer className="market-act-footer"><div className="market-act-tape" aria-hidden="true"><span>COLLATERAL&nbsp; / &nbsp;BORROW ASSET&nbsp; / &nbsp;LOAN LIMIT&nbsp; / &nbsp;PRICE AGE&nbsp; / &nbsp;COLLATERAL&nbsp; / &nbsp;BORROW ASSET&nbsp; / &nbsp;LOAN LIMIT&nbsp; / &nbsp;PRICE AGE&nbsp; / &nbsp;</span><span>COLLATERAL&nbsp; / &nbsp;BORROW ASSET&nbsp; / &nbsp;LOAN LIMIT&nbsp; / &nbsp;PRICE AGE&nbsp; / &nbsp;COLLATERAL&nbsp; / &nbsp;BORROW ASSET&nbsp; / &nbsp;LOAN LIMIT&nbsp; / &nbsp;PRICE AGE&nbsp; / &nbsp;</span></div><span className="market-act-footnote">SCROLL TO EXPLORE ↓</span></footer>
