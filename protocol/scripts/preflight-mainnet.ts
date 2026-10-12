@@ -34,14 +34,26 @@ if (feedText) {
 }
 
 const balanceLamports = await conn.getBalance(wallet.publicKey, 'confirmed');
-let requiredLamports = Math.ceil(0.35 * LAMPORTS_PER_SOL);
+const maxBudgetLamports = Math.ceil(0.05 * LAMPORTS_PER_SOL);
+const feeReserveLamports = Math.ceil(0.005 * LAMPORTS_PER_SOL);
+if (balanceLamports > maxBudgetLamports) {
+  throw new Error(`The deploy wallet holds ${(balanceLamports / LAMPORTS_PER_SOL).toFixed(6)} SOL, above the strict 0.05 SOL spending ceiling. Use a dedicated deploy wallet funded with at most 0.05 SOL.`);
+}
+let requiredLamports = feeReserveLamports;
 let binary = 'not built yet';
 const soPath = process.env.PRISMA_PROGRAM_SO;
 if (soPath) {
   const bytes = (await stat(resolve(soPath))).size;
   const programDataBytes = bytes * 2 + 48;
   requiredLamports += await conn.getMinimumBalanceForRentExemption(programDataBytes, 'confirmed');
+  // Conservative allowances for the program account, market state and two token vaults.
+  for (const size of [36, 512, 165, 165]) {
+    requiredLamports += await conn.getMinimumBalanceForRentExemption(size, 'confirmed');
+  }
   binary = `${bytes.toLocaleString()} bytes (budgeted at 2x program-data capacity)`;
+  if (requiredLamports > maxBudgetLamports) {
+    throw new Error(`Deployment exceeds the 0.05 SOL cap: estimated minimum ${(requiredLamports / LAMPORTS_PER_SOL).toFixed(6)} SOL including account rent and a fee reserve. Nothing was deployed. Reduce program size or change the budget; do not bypass this gate.`);
+  }
 }
 if (balanceLamports < requiredLamports) {
   throw new Error(`Insufficient deploy wallet balance. Have ${(balanceLamports / LAMPORTS_PER_SOL).toFixed(4)} SOL; conservative minimum is ${(requiredLamports / LAMPORTS_PER_SOL).toFixed(4)} SOL.`);
