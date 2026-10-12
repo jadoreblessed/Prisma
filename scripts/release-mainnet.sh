@@ -63,6 +63,9 @@ if [[ "$SKIP_INSTALL" -ne 1 ]]; then
   npm --prefix protocol ci
 fi
 
+echo "[0/7] Checking that the NVDAx oracle is supported before building or spending SOL…"
+npm --prefix protocol run resolve
+
 echo "[1/7] Verifying wallet, RPC, mints, oracle and safe configuration…"
 npm --prefix protocol run preflight
 
@@ -96,9 +99,6 @@ npm --prefix protocol run preflight
 echo "Program ID: $PROGRAM_ID"
 echo "Binary SHA-256: $(shasum -a 256 "$SO_PATH" | awk '{print $1}')"
 echo "The market will remain PAUSED with both caps at ZERO."
-
-echo "[4/7] Resolving and verifying the official oracle configuration…"
-npm --prefix protocol run resolve
 
 echo "[5/7] Deploying/upgrading program…"
 anchor deploy --provider.cluster "$RPC_URL" --provider.wallet "$WALLET_PATH"
