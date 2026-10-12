@@ -19,11 +19,15 @@ npm run build
 
 ## Solana mainnet release
 
-The release is intentionally fail-closed. Initialization always creates a paused market with both caps set to zero, so deployment cannot accept USDC or NVDAx.
+**Deployment blocked:** xStocks currently publishes NVDAx/Solana as a Chainlink PullBased Data Stream (v10), with no push-feed account address. This program only reads push-feed accounts and does not yet verify signed Data Streams reports. The resolver fails before deployment even if `--feed` is supplied. Do not supply the stream's `feedId`, verifier program, or an unrelated asset feed as `--feed`.
+
+This release must not be used for NVDAx until the onchain program verifies the signed v10 report through the official Solana verifier, checks the exact feed ID and timestamps, and the client obtains reports with authorized Data Streams credentials. The lending flow and liquidation path need integration tests and an independent security review before enabling nonzero caps.
+
+The release is intentionally fail-closed. Initialization would create a paused market with both caps set to zero, but the oracle gate currently stops before deploying anything.
 
 ```bash
 npm --prefix protocol ci
-bash scripts/release-mainnet.sh --wallet /path/to/deployer.json --rpc https://YOUR-RPC --feed OFFICIAL_CHAINLINK_FEED
+npm --prefix protocol run resolve  # currently fails with the verified PullBased incompatibility
 ```
 
 The script verifies the Solana mainnet genesis hash, deploy wallet balance, official mint owners, incompatible Token-2022 extensions, Chainlink feed owner, binary size and every post-deploy address before it succeeds. It stores a reproducible deployment record and publishes a fail-closed browser manifest plus the matching Anchor IDL. See `mainnet/README.md` for the exact command, wallet/RPC requirements, authority handoff and the separate activation gate.
