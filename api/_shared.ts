@@ -20,9 +20,10 @@ export const markets: ApiMarket[] = (catalogue as unknown as Array<[string,strin
 }));
 
 export function send(res: any, status: number, body: unknown) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', status === 200 ? 'public, s-maxage=30, stale-while-revalidate=120' : 'no-store');
-  return res.json(body);
+  return res.end(JSON.stringify(body));
 }
 
 export function bodyOf(req: any) {
