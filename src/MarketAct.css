@@ -19,3 +19,27 @@
 @media(max-width:680px){.market-act-track{height:250vh}.market-act-age-anchor{top:83vh}.market-act{min-height:0;margin-inline:8px;border-radius:22px}.market-act-header{left:20px;right:20px;padding-top:19px;font-size:9px}.market-act-scene{inset:61px 20px 61px;display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:18px}.market-act-copy{padding:0}.market-act-kicker{font-size:9px}.market-act-copy h2{font-size:clamp(45px,10vw,70px);line-height:.96;margin:12px 0 11px}.market-act-copy h2 br:nth-child(2){display:none}.market-act-copy p{font-size:12px;line-height:1.4;max-width:380px}.market-act-board,.market-act-clock{max-width:none}.market-act-board-top{padding:9px 0;font-size:8px}.market-act-identity{padding:13px 0;gap:10px}.market-act-identity img{width:33px;height:33px}.market-act-identity small{font-size:10px}.market-act-identity strong{font-size:clamp(34px,9vw,52px)}.market-act-metrics>div{padding:10px 6px 12px}.market-act-metrics>div:first-child{padding-left:0}.market-act-metrics small{font-size:7px;margin-bottom:8px}.market-act-metrics b{font-size:20px}.market-act-age-line{padding:11px 0}.market-act-age-line span{font-size:8px}.market-act-age-line b{font-size:24px}.market-act-select button{padding:9px 5px;font-size:10px}.market-act-select button span{font-size:8px}.market-act-footer{height:39px;font-size:8px}.market-act-footnote{display:none}.market-act-hours{padding:16px 0 12px}.market-act-hours strong{font-size:clamp(125px,30vw,190px)}.market-act-hours span{font-size:10px;margin-bottom:18px}.market-act-status{min-height:110px;padding:12px 0}.market-act-status span{font-size:8px}.market-act-status b{font-size:20px}.market-act-status p{font-size:11px;margin-top:3px}.market-act-days button{padding:11px 5px;font-size:9px}.market-act-days small{font-size:8px}}
 @media(max-width:380px){.market-act-copy h2{font-size:43px}.market-act-copy p{font-size:11px}.market-act-identity strong{font-size:33px}.market-act-metrics b{font-size:17px}.market-act-hours strong{font-size:115px}.market-act-hours span{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.market-act *{animation:none!important;transition:none!important}.market-act-tape span{animation:none}.market-act-progress span{transform:none!important}}
+
+/* The market walkthrough continues the hero's live prismatic surface. */
+.market-act{--light-x:65%;--light-y:40%;background:#f7f7f7;color:#17191c}
+.market-act-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#f7f7f7}
+.market-act-background .shader,.market-act-background .hero-fallback{width:100%;height:100%}
+.market-act-background:after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 30% 36% at var(--light-x) var(--light-y),#f4762040 0%,#e8a98a1e 36%,transparent 75%);mix-blend-mode:multiply;transition:opacity .3s}
+.market-act-background-fallback{position:absolute;inset:0;background:radial-gradient(ellipse at 63% 36%,#f4e8e0 0%,#fff 42%,#f1f2f5 100%)}
+.market-act-background-fallback:before{content:'';position:absolute;inset:-20%;background:repeating-linear-gradient(128deg,transparent 0 11%,#d3dcf130 11.2%,#f2bfe036 11.6%,#e8a36a56 12%,#ffffffb5 12.8%,transparent 17.5%,transparent 32%);filter:blur(5px);animation:prisma-light-drift 16s ease-in-out infinite alternate}
+.market-act:before{background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),#17191c08 calc(25% - 1px),#17191c08 25%)}
+.market-act-progress{background:#17191c20}.market-act-progress span{background:#d65f24}
+.market-act-header{border-color:#17191c45}
+.market-act-kicker,.market-act-copy h2 em,.market-act-age-line b,.market-act-status span,.market-act-footnote{color:#bd4e20}
+.market-act-copy p{color:#4c4d52}
+.market-act-board,.market-act-clock{border-color:#202126}
+.market-act-board-top,.market-act-identity small,.market-act-identity strong span,.market-act-metrics small,.market-act-age-line span,.market-act-status p,.market-act-days small{color:#62636a}
+.market-act-identity,.market-act-metrics,.market-act-metrics>div,.market-act-age-line,.market-act-select button,.market-act-hours,.market-act-status,.market-act-days button,.market-act-footer{border-color:#20212638}
+.market-act-age-line i{background:#bd4e20}
+.market-act-select button,.market-act-days button{color:#4c4d52}
+.market-act-select button.active,.market-act-select button:hover,.market-act-days button.active,.market-act-days button:hover{color:#17191c;background:#ffffff88}
+.market-act-select button span,.market-act-select button i{color:#bd4e20}
+.market-act-hours span{color:#bd4e20}
+.market-act-days button i{border-color:#7d7e83}.market-act-days button.active i{background:#d65f24;border-color:#d65f24;box-shadow:0 0 0 3px #d65f2433}
+.market-act-tape{color:#56585e}
+@media(prefers-reduced-motion:reduce){.market-act-background-fallback:before{animation:none}.market-act-background:after{display:none}}
