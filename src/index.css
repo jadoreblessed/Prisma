@@ -185,3 +185,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #f26522;outline-offset:4p
 @keyframes prisma-title-rise{from{opacity:.08;transform:translateY(105%) rotate(1.3deg)}to{opacity:1;transform:none}}
 @keyframes prisma-soft-rise{from{opacity:0;transform:translateY(19px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.landing-nav,.landing-nav__links a,.hero-title-line>span,.hero-description,.hero-actions,.hero-corner{animation:none}}
+
+/* Keep the animated prism visible while WebGPU initializes. */
+.hero-shader .hero-fallback{z-index:0}
+.hero-shader .shader{position:absolute;inset:0;z-index:1;width:100%;height:100%}
