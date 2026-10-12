@@ -14,7 +14,7 @@ function Landing() {
   const [canUseShader]=useState(()=>typeof navigator!=='undefined' && 'gpu' in navigator && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(()=>{document.body.style.overflow=menuOpen?'hidden':'';return()=>{document.body.style.overflow=''}},[menuOpen]);
   useEffect(()=>{
-    const items=document.querySelectorAll<HTMLElement>('.reveal');
+    const items=document.querySelectorAll<HTMLElement>('.reveal, .ch-feature-row');
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.01,rootMargin:'0px 0px 20% 0px'});
     items.forEach(item=>observer.observe(item));return()=>observer.disconnect();
   },[]);
@@ -29,8 +29,7 @@ function Landing() {
           <button className="landing-menu-toggle" type="button" onClick={()=>setMenuOpen(true)} aria-label="Open menu"><Menu size={20}/></button>
         </nav></header>
         <div className="hero-content">
-          <p className="hero-label">PRISMA / ISOLATED LENDING</p>
-          <h1>Every market, <br className="desktop-break"/>a clearer view <br className="desktop-break"/>of the risk.</h1>
+          <h1><span className="hero-title-line"><span>Every market,</span></span><span className="hero-title-line"><span>a clearer view</span></span><span className="hero-title-line"><span>of the risk.</span></span></h1>
           <p className="hero-description">Borrow against tokenized equities. See the asset, loan limit and age of its price before you act.</p>
           <div className="hero-actions"><GlassButton href={MARKETS} arrow>Explore markets</GlassButton><span className="hero-badge">CA coming soon</span></div>
         </div><span className="hero-corner">01 / 02&nbsp; &nbsp; SCROLL TO EXPLORE</span>
