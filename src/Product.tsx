@@ -1,73 +1,61 @@
-import { useEffect, useState } from 'react';
-import { ArrowUpRight, ChevronDown, Info } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowUpRight, Search, X, Info, ChevronDown } from 'lucide-react';
+import { markets as marketData, equityAssets, otherAssets, tokenLogo } from './marketData';
 import GlassButton from './GlassButton';
 import PrismaMark from './PrismaMark';
+import type { PhantomProvider } from './protocolClient';
 import './Product.css';
 
-type KaminoMarket = {
-  available: boolean;
-  provider?: string;
-  asset?: string;
-  marketName?: string;
-  marketAddress?: string;
-  collateralReserve?: string;
-  url?: string;
-};
-
-const nav = [['Markets', 'markets'], ['Vaults', 'vaults'], ['Stake', 'stake'], ['Claim', 'claim'], ['Docs', 'docs'], ['FAQ', 'faq']];
-const KAMINO_HOME = 'https://kamino.com/borrow/';
-const questions = [
-  ['Where are transactions executed?', 'Kamino handles NVDAx supply, collateral, borrow and repay transactions in its existing xStocks market. Prisma does not deploy a lending program.'],
-  ['Is Prisma creating a market?', 'No. Prisma points to the existing Kamino xStocks market. Creating a new market would require separate setup, liquidity, risk parameters and oracle integration.'],
-  ['What does price age mean?', 'The time since the oracle report used by a market was published. Prisma does not show a live price age until it can verify the timestamp of the feed used by that market.'],
-  ['Are rates and limits shown here live?', 'No rates, caps, limits or oracle ages are displayed on Prisma yet. Review current market terms on Kamino before signing.'],
+type Market = [string,string,number,number,number,number,string,string,number,string];
+type ApiMarket={id:string;collateral:string;borrowAsset:string;supplied:number;borrowed:number;supplyApy:number;borrowApy:number;priceAge:string;category:string;loanLimit:number};
+type KaminoMarket={available:boolean;url?:string};
+type Quote={action:'lend'|'borrow';asset?:string;borrowAsset?:string;apy?:number;estimatedAnnualInterest?:number;maximumBorrow?:number;saferBorrow?:number;executable:boolean;reason?:string};
+const fallbackMarkets=marketData as Market[];
+const toMarket=(m:ApiMarket):Market=>[m.collateral,m.borrowAsset,m.supplied,m.borrowed,m.supplyApy,m.borrowApy,m.priceAge,m.category,m.loanLimit,m.id];
+declare global{interface Window{solana?:PhantomProvider}}
+const compact=(n:number)=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n.toFixed(2);
+const nav=[['Markets','markets'],['Vaults','vaults'],['Stake','stake'],['Claim','claim'],['Docs','docs'],['FAQ','faq']];
+function Token({symbol}:{symbol:string}){const [failed,setFailed]=useState(false);return <span className="product-icon">{!failed&&<img src={tokenLogo(symbol)} alt="" onError={()=>setFailed(true)}/>}<b>{symbol.slice(0,2)}</b></span>}
+function SectionTitle({eyebrow,title,copy}:{eyebrow?:string;title:string;copy?:string}){return <div className="product-section-title">{eyebrow&&<span className="product-kicker">{eyebrow}</span>}<h1>{title}</h1>{copy&&<p>{copy}</p>}</div>}
+function Pair({name,value}:{name:string;value:string}){return <div className="product-pair"><span>{name}</span><strong>{value}</strong></div>}
+const questions=[
+ ['What is an isolated market?','Each market defines its collateral asset, borrow asset, price feed and liquidation limit. Its risk is considered separately from other markets.'],
+ ['What does price age mean?','It shows how long ago the underlying oracle price last moved. Equity feeds may pause when their exchanges close.'],
+ ['Can I supply or borrow now?','You can connect a browser wallet and calculate a market quote. Execution becomes available after the network contracts and oracle are published.'],
+ ['How do vaults work?','A curator can allocate a deposit across approved isolated markets, subject to each market cap. The Prisma vault interface is in preview.'],
+ ['What happens if a price is old?','The age is shown beside the market and position. An older price deserves extra attention when assessing liquidation risk.']
 ];
-
-function SectionTitle({ eyebrow, title, copy }: { eyebrow?: string; title: string; copy: string }) {
-  return <div className="product-section-title">{eyebrow && <span className="product-kicker">{eyebrow}</span>}<h1>{title}</h1><p>{copy}</p></div>;
-}
-
-export default function Product({ route }: { route: string }) {
-  const [kamino, setKamino] = useState<KaminoMarket | null>(null);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/kamino-market', { signal: controller.signal })
-      .then(response => { if (!response.ok) throw new Error('Kamino unavailable'); return response.json(); })
-      .then((data: KaminoMarket) => setKamino(data))
-      .catch(() => { if (!controller.signal.aborted) setKamino({ available: false }); });
-    return () => controller.abort();
-  }, []);
-
-  const kaminoUrl = kamino?.available && kamino.url ? kamino.url : KAMINO_HOME;
+export default function Product({route}:{route:string}){
+  const [markets,setMarkets]=useState<Market[]>(fallbackMarkets),[apiOnline,setApiOnline]=useState(false);
+  const [query,setQuery]=useState(''),[filter,setFilter]=useState<'equity'|'other'|'all'>('equity'),[sort,setSort]=useState<2|4|3|5>(2),[expanded,setExpanded]=useState(false);
+  const [selected,setSelected]=useState<Market|null>(null),[notice,setNotice]=useState(false),[stakeTab,setStakeTab]=useState<'Stake'|'Unstake'>('Stake'),[openFaq,setOpenFaq]=useState<number|null>(0);
+  const [wallet,setWallet]=useState(''),[walletError,setWalletError]=useState(''),[amount,setAmount]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[quoteLoading,setQuoteLoading]=useState(false);
+  const [kamino,setKamino]=useState<KaminoMarket|null>(null);
+  useEffect(()=>{const controller=new AbortController();fetch('/api/markets?limit=250',{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error('api');return r.json()}).then((data:{rows?:ApiMarket[]})=>{if(data.rows?.length){setMarkets(data.rows.map(toMarket));setApiOnline(true)}}).catch(()=>{});return()=>controller.abort()},[]);
+  useEffect(()=>{const controller=new AbortController();fetch('/api/kamino-market',{signal:controller.signal}).then(r=>r.ok?r.json():Promise.reject()).then((data:KaminoMarket)=>setKamino(data)).catch(()=>{if(!controller.signal.aborted)setKamino({available:false})});return()=>controller.abort()},[]);
+  const connectWallet=async()=>{if(!window.solana?.isPhantom){setWalletError('Install Phantom to connect to Prisma on Solana.');setNotice(true);return}try{const result=await window.solana.connect();const address=result.publicKey.toString();if(address){setWallet(address);setWalletError('')}}catch{setWalletError('The Phantom connection request was cancelled.');setNotice(true)}};
+  const requestQuote=async(action:'lend'|'borrow')=>{if(!selected||!Number.isFinite(Number(amount))||Number(amount)<=0)return;setQuoteLoading(true);setQuote(null);try{const response=await fetch('/api/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,marketId:selected[9],amount:Number(amount)})});if(!response.ok)throw new Error('quote');setQuote(await response.json())}catch{setWalletError('The quote service is temporarily unavailable.');setNotice(true)}finally{setQuoteLoading(false)}};
+  const visible=useMemo(()=>markets.filter(m=>(filter==='all'||m[7]===filter)&&`${m[0]} ${m[1]}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>b[sort]-a[sort]),[query,filter,sort]);
+  const isKaminoMarket=Boolean(selected&&selected[0]==='NVDA');
   return <div className="product-page">
-    <header className="product-header"><div className="product-header__inner">
-      <a className="product-brand" href="#/" aria-label="Prisma home"><PrismaMark/><span>Prisma</span></a>
-      <nav aria-label="Product navigation">{nav.map(([label, path]) => <a key={path} className={route === path ? 'active' : ''} href={'#/' + path}>{label}</a>)}</nav>
-      <GlassButton href={kaminoUrl} className="product-connect" arrow>Open Kamino</GlassButton>
-    </div></header>
-
-    {route === 'markets' && <main className="product-main">
-      <SectionTitle eyebrow="LIVE MARKET / KAMINO" title="NVDAx lending" copy="Explore tokenized equity lending on Solana. Prisma links to the existing Kamino xStocks market; transactions and wallet connection happen there." />
-      <div className="product-live-market">
-        <div className="product-live-market__top"><span className="product-kicker">NVIDIA xSTOCK</span><span className="product-live-market__status"><i />{kamino === null ? 'Checking market' : kamino.available ? 'Market found on Kamino' : 'Live lookup unavailable'}</span></div>
-        <div className="product-live-market__body"><div><h2>NVDAx <span>/ xStocks Market</span></h2><p>Use NVDAx as collateral and review available borrowing options in Kamino’s market. Check the live asset mint, loan limit, rates and oracle status before signing.</p></div><a className="product-chain-submit product-partner-link" href={kaminoUrl} target="_blank" rel="noopener noreferrer">{kamino?.available ? 'Open this market' : 'Find NVDAx on Kamino'} <ArrowUpRight size={18}/></a></div>
-        <div className="product-live-market__bottom"><span>PROTOCOL <strong>Kamino Lend</strong></span><span>NETWORK <strong>Solana mainnet</strong></span><span>PRICE AGE <strong>Not verified</strong></span></div>
-      </div>
-      <p className="product-disclaimer">Prisma does not show estimated rates, a price timestamp or liquidation thresholds for this market. A Pyth ticker timestamp may differ from the Chainlink feed used by Kamino.</p>
-    </main>}
-
-    {route === 'vaults' && <main className="product-main"><SectionTitle title="Vaults" copy="Vault discovery on existing protocols is being prepared. No Prisma vault accepts deposits."/><div className="product-empty-panel"><span>VAULT DIRECTORY</span><h2>No live vaults connected.</h2><p>Vault operators, allocation caps and withdrawal terms will appear here only after integration with verified protocol data.</p></div></main>}
-    {route === 'stake' && <main className="product-main"><SectionTitle title="Stake Prisma" copy="The token address and staking program have not been announced."/><div className="product-alert"><span>CA COMING SOON</span><p>No staking contract is connected and this page cannot accept funds.</p></div></main>}
-    {route === 'claim' && <main className="product-main"><SectionTitle title="Claim" copy="Claim eligibility and token distribution have not been announced."/><div className="product-alert"><span>CA COMING SOON</span><p>No claim contract is connected. Never send funds to an unverified token address.</p></div></main>}
-    {route === 'docs' && <main className="product-main"><SectionTitle eyebrow="THE INTERFACE" title="How Prisma works" copy="Prisma helps you discover tokenized equity lending on existing Solana protocols."/><div className="product-info-grid">
-      <article><h3>01 / Find a market</h3><p>We check Kamino’s public market directory for NVDAx in its xStocks market.</p></article>
-      <article><h3>02 / Review the terms</h3><p>Open the market on Kamino and verify the asset, rates, collateral requirements and current liquidity.</p></article>
-      <article><h3>03 / Act on Kamino</h3><p>Connect your wallet and sign any supply or borrow transaction on Kamino. Prisma does not custody assets.</p></article>
-      <article><h3>04 / Price age</h3><p>This will appear only when the timestamp from the market’s actual oracle feed can be read and verified.</p></article>
-    </div><GlassButton href="#/markets" arrow>Explore markets</GlassButton></main>}
-    {route === 'faq' && <main className="product-main"><SectionTitle title="FAQ" copy="What is live, what remains in progress, and where transactions happen."/><div className="product-faq">{questions.map(([question, answer], index) => <div key={question} className={openFaq === index ? 'open' : ''}><button onClick={() => setOpenFaq(openFaq === index ? null : index)} aria-expanded={openFaq === index}>{question}<ChevronDown size={19}/></button>{openFaq === index && <p>{answer}</p>}</div>)}</div><p className="product-disclaimer"><Info size={15}/> Market availability and terms may change. Check Kamino before taking any position.</p></main>}
-    <footer className="product-footer"><span>PRISMA / MARKET EXPLORER</span><a href="#/">BACK TO SITE <ArrowUpRight size={14}/></a></footer>
+    <header className="product-header"><div className="product-header__inner"><a className="product-brand" href="#/" aria-label="Prisma home"><PrismaMark/><span>Prisma</span></a><nav aria-label="Product navigation">{nav.map(([label,path])=><a key={path} className={route===path?'active':''} href={'#/'+path}>{label}</a>)}</nav><GlassButton onClick={connectWallet} className="product-connect">{wallet?`${wallet.slice(0,6)}…${wallet.slice(-4)}`:'Connect wallet'}</GlassButton></div></header>
+    {route==='markets'&&<main className="product-main"><SectionTitle title="Markets"/><div className="product-overview"><div><span>Equity assets</span><strong>{equityAssets}</strong></div><div><span>Other assets</span><strong>{otherAssets}</strong></div><div><span>Markets shown</span><strong>{markets.length}</strong></div><div><span>Data service</span><strong>{apiOnline?'Catalogue loaded':'Catalogue preview'}</strong></div></div><div className="product-tools"><div className="market-tabs">{[['Equity collateral','equity'],['Everything else','other'],['All markets','all']].map(([label,value])=><button type="button" key={value} className={filter===value?'active':''} onClick={()=>{setFilter(value as 'equity'|'other'|'all');setExpanded(false)}}>{label}</button>)}</div><label className="market-search"><Search size={15}/><input value={query} onChange={e=>{setQuery(e.target.value);setExpanded(false)}} placeholder="Search assets" aria-label="Search assets"/></label></div><div className="product-table"><div className="product-table-head"><span>ASSET</span><button onClick={()=>setSort(2)}>TOTAL SUPPLIED {sort===2?'↓':''}</button><button onClick={()=>setSort(4)}>SUPPLY APY {sort===4?'↓':''}</button><button onClick={()=>setSort(3)}>TOTAL BORROWED {sort===3?'↓':''}</button><button onClick={()=>setSort(5)}>BORROW APY {sort===5?'↓':''}</button><span>PRICE AGE</span></div>{visible.slice(0,expanded?visible.length:12).map(m=><button type="button" className="product-row" key={m[9]} onClick={()=>{setSelected(m);setAmount('');setQuote(null)}}><span className="product-asset"><Token symbol={m[0]}/><span><strong>{m[0]}</strong><small>vs {m[1]} · {m[8].toFixed(1)}% limit</small></span></span><span><strong>{compact(m[2])}</strong><small>snapshot</small></span><span className="product-teal"><strong>{m[4].toFixed(2)}%</strong><small>supply</small></span><span><strong>{compact(m[3])}</strong><small>snapshot</small></span><span><strong>{m[5].toFixed(2)}%</strong><small>borrow</small></span><span className="product-age"><strong>{m[6]}</strong><i/></span></button>)}{visible.length===0&&<p className="product-empty">No matching markets.</p>}{visible.length>12&&!expanded&&<button type="button" className="product-show-more" onClick={()=>setExpanded(true)}>Show {visible.length-12} more ↓</button>}</div><p className="product-disclaimer">Illustrative market snapshot. Values and price ages are not live.</p></main>}
+    {route==='vaults'&&<main className="product-main"><div className="product-heading-row"><SectionTitle title="Vaults" copy="One deposit, allocated across approved isolated markets by a curator. Review the markets, caps and curator before depositing."/><GlassButton onClick={()=>setNotice(true)} arrow>Create a vault</GlassButton></div><div className="product-overview"><div><span>Vaults</span><strong>—</strong></div><div><span>Deposited</span><strong>— USDG</strong></div><div><span>Markets allocated</span><strong>—</strong></div><div><span>Curators</span><strong>—</strong></div></div><div className="product-empty-panel"><span>VAULT DIRECTORY</span><h2>No live vaults connected.</h2><p>The directory will show each vault, its curator, enabled markets, allocation caps and timelock when onchain data is available.</p></div><h2 className="product-subheading">What a vault is</h2><div className="product-info-grid">{[['A deposit with a manager','A curator chooses the markets a vault may lend into and how much each may receive.'],['Caps, not custody','A curator sets allocation limits; depositors retain their claim on the vault contract.'],['A timelock on loosening','Changes that expand risk wait through the vault’s timelock, giving depositors time to review.']].map(([title,copy])=><article key={title}><h3>{title}</h3><p>{copy}</p></article>)}</div></main>}
+    {route==='stake'&&<main className="product-main"><SectionTitle title="Stake Prisma" copy="Staking mechanics will be available after the Prisma token and contracts are announced."/><div className="product-alert"><span>CA COMING SOON</span><p>The token address, staking contract and reward rules have not been published. This interface is a preview and cannot accept funds.</p></div><div className="product-two-column"><div className="product-panel"><div className="stake-switch"><div className="market-tabs">{(['Stake','Unstake'] as const).map(t=><button key={t} className={stakeTab===t?'active':''} onClick={()=>setStakeTab(t)}>{t}</button>)}</div><span>Wallet &nbsp; — PRISMA</span></div><div className="stake-input"><span>0</span><small>MAX</small><strong>✦ PRISMA</strong></div><Pair name="Rewards paid in" value="—"/><Pair name="Claimable now" value="—"/><Pair name="Unstake cooldown" value="To be announced"/><Pair name="Network" value="To be announced"/><button className="product-disabled-action" disabled>CA coming soon</button><p className="product-disclaimer">No contract or wallet action is connected.</p></div><div className="product-panel"><h3>STAKING</h3><Pair name="Total staked" value="— PRISMA"/><Pair name="In cooldown" value="— PRISMA"/><Pair name="Paid to stakers" value="—"/><Pair name="Token contract" value="Coming soon"/><Pair name="Staking contract" value="Coming soon"/><h3 className="product-panel__divider">YOUR POSITION</h3><Pair name="Staked" value="— PRISMA"/><Pair name="Claimable" value="—"/><Pair name="Cooldown" value="none"/><p className="product-disclaimer">Connect a wallet after launch to view a position.</p></div></div><h2 className="product-subheading">What staking is for</h2><div className="product-info-grid">{[['A defined role','Stake terms and exposure will be shown here before activation.'],['Transparent rewards','Reward assets and distribution rules will be published with the contracts.'],['A visible exit','Any cooldown or withdrawal conditions will be shown before staking becomes available.']].map(([title,copy])=><article key={title}><h3>{title}</h3><p>{copy}</p></article>)}</div></main>}
+    {route==='claim'&&<main className="product-main"><SectionTitle title="Claim" copy="The Prisma token claim interface will appear here after the contract address and eligibility rules are announced."/><div className="product-alert"><span>CA COMING SOON</span><p>There is no claim contract connected. Never send funds to a token address that has not been published by Prisma.</p></div><div className="product-two-column"><div className="product-panel"><h2>Check eligibility</h2><p>Wallet checks will be available once claim rules are finalized.</p><button className="product-disabled-action" disabled>Claim unavailable</button></div><div className="product-panel"><h3>CLAIM STATUS</h3><Pair name="Token" value="Not announced"/><Pair name="Snapshot" value="Not announced"/><Pair name="Claim window" value="Not announced"/><Pair name="Your allocation" value="—"/></div></div></main>}
+    {route==='docs'&&<main className="product-main"><SectionTitle eyebrow="THE PROTOCOL" title="How Prisma works" copy="The interface puts the market, loan limit and price age together before a decision."/><div className="product-info-grid">{[['01 / Isolated markets','Each collateral asset is paired with a borrow asset, price feed and liquidation limit.'],['02 / Supply or borrow','Supply stablecoins to the pool, or post tokenized shares as collateral to borrow.'],['03 / Price age in view','The underlying exchange may close while a position stays open. Prisma displays the age of the last price move.'],['04 / Liquidation limits','When debt reaches a market limit, collateral may be liquidated. Assess the loan and its price context together.']].map(([title,copy])=><article key={title}><h3>{title}</h3><p>{copy}</p></article>)}</div><p className="product-disclaimer">Interface preview. Wallet actions, contracts and live oracle data are not connected.</p><GlassButton href="#/markets" arrow>Explore markets</GlassButton></main>}
+    {route==='faq'&&<main className="product-main"><SectionTitle title="FAQ" copy="Answers about isolated markets, price age and the current preview."/><div className="product-faq">{questions.map(([question,answer],i)=><div key={question} className={openFaq===i?'open':''}><button onClick={()=>setOpenFaq(openFaq===i?null:i)} aria-expanded={openFaq===i}>{question}<ChevronDown size={19}/></button>{openFaq===i&&<p>{answer}</p>}</div>)}</div></main>}
+    {selected&&<div className="product-modal-backdrop" onClick={()=>setSelected(null)}><div className="product-modal" role="dialog" aria-modal="true" aria-label={selected[0]+' market'} onClick={e=>e.stopPropagation()}>
+      <button className="product-modal-close" onClick={()=>setSelected(null)} aria-label="Close"><X size={20}/></button><button className="product-back" onClick={()=>setSelected(null)}><ArrowLeft size={16}/> All markets</button>
+      <div className="product-modal-title"><Token symbol={selected[0]}/><div><span>ISOLATED MARKET</span><h2>{selected[0]+' / '+selected[1]}</h2></div></div>
+      <div className="product-modal-alert"><Info size={17}/> These market figures and the price age are an illustrative snapshot, not live lending terms.</div>
+      <div className="product-detail-stats"><Pair name="Loan limit" value={selected[8].toFixed(1)+'%'}/><Pair name="Supply APY" value={selected[4].toFixed(2)+'%'}/><Pair name="Borrow APY" value={selected[5].toFixed(2)+'%'}/></div>
+      <div className="product-position-grid"><div><h3>Lend {selected[1]}</h3><Pair name="You supplied" value="—"/><Pair name="In your wallet" value="—"/><Pair name="Earning" value={selected[4].toFixed(2)+'%'}/><label>AMOUNT<input inputMode="decimal" value={amount} onChange={e=>{setAmount(e.target.value);setQuote(null)}} placeholder="0.00"/></label><button disabled={quoteLoading||Number(amount)<=0} onClick={()=>requestQuote('lend')}>{quoteLoading?'Calculating…':'Preview supply'}</button></div>
+      <div><h3>Borrow against {selected[0]}</h3><Pair name="Collateral posted" value="—"/><Pair name="You owe" value="—"/><Pair name="Liquidated above" value={selected[8].toFixed(1)+'%'}/><label>COLLATERAL<input inputMode="decimal" value={amount} onChange={e=>{setAmount(e.target.value);setQuote(null)}} placeholder="0.00"/></label><button disabled={quoteLoading||Number(amount)<=0} onClick={()=>requestQuote('borrow')}>{quoteLoading?'Calculating…':'Preview borrow'}</button></div></div>
+      {quote&&<div className="product-quote-result"><span>ILLUSTRATIVE PREVIEW</span><strong>{quote.action==='lend'?`${quote.estimatedAnnualInterest} ${quote.asset} estimated per year`: `Up to ${quote.maximumBorrow} ${quote.borrowAsset}; ${quote.saferBorrow} at an 80% buffer`}</strong><p>Calculated from the demonstration snapshot. This is not an executable quote.</p></div>}
+      {isKaminoMarket&&<div className="product-chain-panel"><span className="product-kicker">EXISTING SOLANA MARKET</span><p>NVDAx transactions happen on Kamino. Check current terms there before signing.</p><a className="product-chain-submit product-partner-link" href={kamino?.available&&kamino.url?kamino.url:'https://kamino.com/borrow/'} target="_blank" rel="noopener noreferrer">Open NVDAx on Kamino ↗</a></div>}
+    </div></div>}
+    {notice&&<div className="product-modal-backdrop" onClick={()=>setNotice(false)}><div className="product-notice" role="dialog" aria-modal="true" aria-label="Preview notice" onClick={e=>e.stopPropagation()}><button className="product-modal-close" onClick={()=>setNotice(false)} aria-label="Close"><X size={20}/></button><span className="product-kicker">INTERFACE PREVIEW</span><h2>{walletError||'This section is a preview.'}</h2><p>{walletError?'No account or transaction was changed.':'Wallet connection and illustrative quote previews are available. NVDAx transactions open on Kamino.'}</p><GlassButton onClick={()=>setNotice(false)}>Got it</GlassButton></div></div>}
+    <footer className="product-footer"><span>PRISMA / INTERFACE PREVIEW</span><a href="#/">BACK TO SITE <ArrowUpRight size={14}/></a></footer>
   </div>;
 }
