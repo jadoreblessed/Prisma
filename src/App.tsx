@@ -30,7 +30,7 @@ function Landing() {
         </nav></header>
         <div className="hero-content">
           <h1><span className="hero-title-line"><span>Every market,</span></span><span className="hero-title-line"><span>a clearer view</span></span><span className="hero-title-line"><span>of the risk.</span></span></h1>
-          <p className="hero-description">Borrow against tokenized equities. See the asset, loan limit and age of its price before you act.</p>
+          <p className="hero-description">Explore tokenized equity lending. NVDAx transactions open on Kamino; verified price age will appear when its oracle timestamp is available.</p>
           <div className="hero-actions"><GlassButton href={MARKETS} arrow>Explore markets</GlassButton><span className="hero-badge">CA coming soon</span></div>
         </div><span className="hero-corner">01 / 02&nbsp; &nbsp; SCROLL TO EXPLORE</span>
       </div>
