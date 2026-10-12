@@ -15,7 +15,7 @@ export default function handler(req: any, res: any) {
       action: 'lend', marketId: market.id, amount,
       asset: market.borrowAsset, apy: market.supplyApy,
       estimatedAnnualInterest: Number(annualInterest.toFixed(6)),
-      executable: false, reason: 'mainnet_market_paused',
+      executable: false, reason: 'illustrative_snapshot',
     });
   }
 
@@ -27,6 +27,6 @@ export default function handler(req: any, res: any) {
     loanLimit: market.loanLimit,
     maximumBorrow: Number(maximumBorrow.toFixed(6)),
     saferBorrow: Number(saferBorrow.toFixed(6)),
-    executable: false, reason: 'mainnet_market_paused',
+    executable: false, reason: 'illustrative_snapshot',
   });
 }
