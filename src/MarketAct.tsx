@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { tokenLogo } from './marketData';
 import './MarketAct.css';
+
+const HeroShader = lazy(() => import('./HeroShader'));
 
 const markets = [
   { symbol: 'SPY', name: 'S&P 500 ETF', pair: 'USDG', limit: '62.5%', supplied: '$21.7K', borrowed: '$555', age: '4h 17m' },
@@ -16,10 +18,13 @@ const moments = [
 
 export default function MarketAct() {
   const track = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const pointerFrame = useRef<number | null>(null);
   const progressBar = useRef<HTMLSpanElement>(null);
   const [phase, setPhase] = useState(0);
   const [selected, setSelected] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
+  const [canUseShader] = useState(() => typeof navigator !== 'undefined' && 'gpu' in navigator && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const market = markets[selected];
   const moment = moments[momentIndex];
 
@@ -43,6 +48,23 @@ export default function MarketAct() {
     return () => { window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); };
   }, []);
 
+  useEffect(() => () => {
+    if (pointerFrame.current !== null) cancelAnimationFrame(pointerFrame.current);
+  }, []);
+
+  const moveLight = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch' || pointerFrame.current !== null) return;
+    const { clientX, clientY } = event;
+    pointerFrame.current = requestAnimationFrame(() => {
+      pointerFrame.current = null;
+      const element = stage.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      element.style.setProperty('--light-x', `${((clientX - rect.left) / rect.width) * 100}%`);
+      element.style.setProperty('--light-y', `${((clientY - rect.top) / rect.height) * 100}%`);
+    });
+  };
+
   const goToMoment = (index: number) => {
     const element = track.current;
     if (!element) return;
@@ -53,7 +75,10 @@ export default function MarketAct() {
 
   return <section className="market-act-track" ref={track} aria-label="Prisma market and price age walkthrough">
     <span className="market-act-age-anchor" id="price-age" aria-hidden="true" />
-    <div className={`market-act ${phase === 1 ? 'market-act--age' : ''}`}>
+    <div className={`market-act ${phase === 1 ? 'market-act--age' : ''}`} ref={stage} onPointerMove={moveLight} onPointerLeave={() => { if (pointerFrame.current !== null) cancelAnimationFrame(pointerFrame.current); pointerFrame.current = null; stage.current?.style.removeProperty('--light-x'); stage.current?.style.removeProperty('--light-y'); }}>
+      <div className="market-act-background" aria-hidden="true">
+        {canUseShader ? <Suspense fallback={<div className="market-act-background-fallback" />}><HeroShader /></Suspense> : <div className="market-act-background-fallback" />}
+      </div>
       <div className="market-act-progress"><span ref={progressBar} /></div>
       <header className="market-act-header"><span>{phase === 0 ? '01 / THE MARKET' : '02 / PRICE AGE'}</span></header>
 
