@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "Prisma no longer deploys a lending program. NVDAx transactions use the existing Kamino xStocks market." >&2
+echo "This legacy deployment script is disabled and will not spend SOL." >&2
+exit 1
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WALLET_PATH="${ANCHOR_WALLET:-$HOME/.config/solana/prisma-mainnet.json}"
 RPC_URL="${SOLANA_MAINNET_RPC:-}"
