@@ -1,10 +1,12 @@
 # Prisma
 
-Prisma is an isolated lending interface and Solana program for tokenized equities. The first prepared market is `NVDAx / USDC` on Solana mainnet-beta. The program supports Token-2022 collateral, classic SPL liquidity, lender and debt shares, fixed-rate interest accrual, Chainlink price validation, isolated risk limits, liquidation, caps, emergency pause, and a two-step authority transfer.
+Prisma is a tokenized equity lending discovery interface on Solana. The current working path uses **Kamino’s existing xStocks market** for NVDAx. There is no Prisma lending program to deploy, no new market to initialize, and no Prisma contract address to supply to a wallet.
 
-The website includes the landing page, Markets, Vaults, Stake, Claim, Docs and FAQ views. Phantom connection and server-side quote previews are enabled. The NVDAx market supports mainnet Supply, Deposit collateral, Borrow and Repay actions, but the UI unlocks them only when the signed deployment flow publishes a non-paused market with non-zero caps.
+The app checks Kamino’s public `/markets/collateral-reserves` endpoint for an NVDAx collateral row in the xStocks market. When found, it links to that market; if the API cannot be verified, it links to Kamino’s borrow directory so the user can find NVDAx there. Wallet connection, review and signing take place on Kamino. Check the token mint, rates, available liquidity, collateral rules and transaction prompt on Kamino before acting.
 
-## Local development
+The site does **not** yet display live rates, loan limits, oracle price age or positions. A Pyth ticker is not necessarily the feed Kamino uses for its xStocks market, so Prisma does not substitute its `publish_time` for a verified Chainlink report timestamp. Vaults, Stake and Claim are nonfunctional previews.
+
+## Run locally
 
 ```bash
 npm install
@@ -17,19 +19,6 @@ npm run dev
 npm run build
 ```
 
-## Solana mainnet release
+The legacy `protocol/`, `programs/`, `mainnet/` and `scripts/` directories are archived work from the abandoned custom program approach. `scripts/release-mainnet.sh` exits before any deployment or SOL expenditure. Do not use archived mainnet release commands for the Kamino integration.
 
-**Deployment blocked:** xStocks currently publishes NVDAx/Solana as a Chainlink PullBased Data Stream (v10), with no push-feed account address. This program only reads push-feed accounts and does not yet verify signed Data Streams reports. The resolver fails before deployment even if `--feed` is supplied. Do not supply the stream's `feedId`, verifier program, or an unrelated asset feed as `--feed`.
-
-This release must not be used for NVDAx until the onchain program verifies the signed v10 report through the official Solana verifier, checks the exact feed ID and timestamps, and the client obtains reports with authorized Data Streams credentials. The lending flow and liquidation path need integration tests and an independent security review before enabling nonzero caps.
-
-The release is intentionally fail-closed. Initialization would create a paused market with both caps set to zero, but the oracle gate currently stops before deploying anything.
-
-```bash
-npm --prefix protocol ci
-npm --prefix protocol run resolve  # currently fails with the verified PullBased incompatibility
-```
-
-The script verifies the Solana mainnet genesis hash, deploy wallet balance, official mint owners, incompatible Token-2022 extensions, Chainlink feed owner, binary size and every post-deploy address before it succeeds. It stores a reproducible deployment record and publishes a fail-closed browser manifest plus the matching Anchor IDL. See `mainnet/README.md` for the exact command, wallet/RPC requirements, authority handoff and the separate activation gate.
-
-Publish `dist` to a static host. Hash routes work without server rewrites. WebGPU powers the hero shader when available and the video fallback keeps the page readable on unsupported devices.
+The frontend uses hash routes and can run on a static host. The API route requires a host that supports the `api/` server functions (for example the connected Vercel project). If the API route is unavailable, the market page safely falls back to Kamino’s directory.
