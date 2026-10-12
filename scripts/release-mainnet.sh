@@ -35,6 +35,10 @@ done
 for bin in solana solana-keygen anchor node npm shasum; do
   command -v "$bin" >/dev/null || { echo "Missing $bin. See mainnet/README.md for exact prerequisites."; exit 1; }
 done
+ANCHOR_VERSION="$(anchor --version | awk '{print $2}')"
+SOLANA_VERSION="$(solana --version | awk '{print $2}')"
+[[ "$ANCHOR_VERSION" == "0.31.1" ]] || { echo "Anchor 0.31.1 is required; found $ANCHOR_VERSION. Run: avm install 0.31.1 && avm use 0.31.1"; exit 1; }
+[[ "$SOLANA_VERSION" == "2.1.0" ]] || { echo "Solana CLI 2.1.0 is required for this reproducible build; found $SOLANA_VERSION."; exit 1; }
 [[ -n "$RPC_URL" ]] || { echo "A private mainnet RPC is required. Pass --rpc or set SOLANA_MAINNET_RPC."; exit 1; }
 [[ -f "$WALLET_PATH" ]] || { echo "Deploy wallet not found: $WALLET_PATH"; exit 1; }
 

@@ -20,7 +20,7 @@ The release is idempotent: rerunning it uses the preserved program keypair, upgr
 ## Prerequisites
 
 - Node.js 22+
-- Solana/Agave CLI with `solana` and `solana-keygen`
+- Solana/Agave CLI `2.1.0` with `solana` and `solana-keygen`
 - Anchor CLI `0.31.1`
 - a dedicated JSON deploy keypair stored locally
 - a private Solana mainnet RPC endpoint
