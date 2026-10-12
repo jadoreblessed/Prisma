@@ -1,6 +1,10 @@
 # Prisma Solana mainnet release
 
-This repository is prepared to deploy one isolated `NVDAx / USDC` market. Deployment is fail-closed: the initializer always writes `paused = true`, `supply_cap = 0`, and `borrow_cap = 0`. Deploying the program cannot accept deposits or create loans.
+**DO NOT DEPLOY THE CURRENT PROGRAM FOR NVDAx.** xStocks reports a Solana `PullBased` Chainlink Data Stream with v10 report schema, feed ID `0x000a37a55df2ef907d8fa06af6632bc16da58a62b68be2e1994efaa037a0918a`, and `address: null`. This program reads push-feed accounts (`read_feed_v2`) and cannot consume this stream. Its current oracle configuration is incompatible even if a different feed address is manually supplied. The release script now stops before building or spending SOL.
+
+To unblock a release, implement signed v10 report retrieval and onchain verification through the official Solana Data Streams verifier for each price-dependent instruction; verify the exact feed ID, report expiry, observation timestamp, underlying-price timestamp, market status, decimals and corporate-action multiplier. Obtain Data Streams mainnet credentials entitled to this feed and test the full transaction flow and liquidations before allowing nonzero caps. Do not substitute an offchain API price or the verifier program ID for an oracle account.
+
+The planned market remains fail-closed: its initializer writes `paused = true`, `supply_cap = 0`, and `borrow_cap = 0`.
 
 ## What the release command does
 
@@ -25,7 +29,7 @@ The release is idempotent: rerunning it uses the preserved program keypair, upgr
 - a dedicated JSON deploy keypair stored locally
 - a private Solana mainnet RPC endpoint
 - enough SOL for the calculated program rent and transaction fees
-- the official NVDAx/USD Chainlink feed address if the xStocks discovery API is unavailable
+- Chainlink Data Streams mainnet subscription and feed entitlement (required for the future v10 integration; do not share credentials)
 
 Do not put a seed phrase, private key, RPC secret, or keypair JSON in Git or in a frontend environment variable.
 
@@ -37,13 +41,12 @@ Install the small release client once:
 npm --prefix protocol ci
 ```
 
-Then deploy:
+The command below is intentionally blocked until the v10 integration is implemented and reviewed. Do not run it now:
 
 ```bash
 bash scripts/release-mainnet.sh \
   --wallet "$HOME/.config/solana/prisma-mainnet.json" \
-  --rpc "https://YOUR-PRIVATE-MAINNET-RPC" \
-  --feed "OFFICIAL_NVDAx_USD_CHAINLINK_FEED"
+  --rpc "https://YOUR-PRIVATE-MAINNET-RPC"
 ```
 
 The script asks for the exact confirmation phrase before spending SOL. For CI or another non-interactive terminal, add `--confirm-mainnet`. After the first successful build, back up `mainnet/keys/prisma_lending-keypair.json` offline.
