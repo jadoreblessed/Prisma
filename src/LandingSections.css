@@ -1,6 +1,8 @@
 .ch-story{--ch-ink:#1b1b20;--ch-muted:#606067;--ch-accent:#b4523b;color:var(--ch-ink);background:#f5f4f2;font-family:Inter,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .ch-story *{box-sizing:border-box}.ch-story h2,.ch-story h3,.ch-story p{margin:0}.ch-story a{text-decoration:none}.ch-wrap{max-width:1180px;margin:auto;padding:0 26px}
-.ch-stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #d2d0cd;padding:26px 0 31px;margin-bottom:102px}
+.ch-stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #d2d0cd;padding:26px 0 31px;margin-bottom:102px;position:relative;overflow:hidden}
+.ch-stats::before{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent 0%,#d65f24 43%,#ffb17e 50%,transparent 58%);transform:translateX(-115%);opacity:0}
+.ch-stats.is-visible::before{animation:ch-stats-scan 4.8s .25s cubic-bezier(.16,1,.3,1) both}
 .ch-stats>div{display:flex;flex-direction:column;gap:4px;padding-left:28px;border-left:1px solid #d2d0cd}.ch-stats>div:first-child{padding-left:0;border-left:0}
 .ch-stats b{font-size:clamp(28px,3vw,42px);letter-spacing:-.05em;font-weight:560;line-height:1.05}.ch-stats span{font-size:12px;color:#77757a}
 .ch-kicker,.ch-feature-number{font:600 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em;color:var(--ch-accent)}
@@ -14,7 +16,9 @@
 .ch-age-ui{width:100%;display:grid;grid-template-columns:repeat(4,1fr);border-radius:7px}.ch-age-ui>div{display:flex;flex-direction:column;gap:4px;padding:19px 15px;border-left:1px solid #e8e8ec}.ch-age-ui>div:first-child{border:0}.ch-age-ui small{font-size:8px;color:#898992}.ch-age-ui b{font-size:17px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .ch-disclaimer{font-size:11px;color:#87858a;margin:35px 0 0;line-height:1.5}.ch-footer{border-top:1px solid #d2d0cd;padding:27px max(26px,calc((100vw - 1128px)/2));display:flex;justify-content:space-between;gap:20px;color:#7f7d83;font-size:11px;letter-spacing:.08em}.ch-footer>div{display:flex;gap:26px}.ch-footer a{color:inherit}.ch-footer a:hover{color:#1b1b20}
 .ch-feature-copy.is-visible>*{animation:ch-copy-in .75s both cubic-bezier(.16,1,.3,1)}.ch-feature-copy.is-visible>h3{animation-delay:.08s}.ch-feature-copy.is-visible>p{animation-delay:.17s}.ch-feature-copy.is-visible>a,.ch-feature-copy.is-visible>.glass-button-shell{animation-delay:.25s}@keyframes ch-copy-in{from{opacity:0;transform:translateY(17px)}to{opacity:1;transform:none}}
-.ch-stats.is-visible>div b{animation:ch-copy-in .75s both cubic-bezier(.16,1,.3,1)}.ch-stats.is-visible>div:nth-child(2) b{animation-delay:.1s}.ch-stats.is-visible>div:nth-child(3) b{animation-delay:.2s}
+.ch-stats>div{opacity:0;transform:translateY(20px)}.ch-stats.is-visible>div{animation:ch-stat-rise 1.4s both cubic-bezier(.16,1,.3,1)}.ch-stats.is-visible>div:nth-child(2){animation-delay:.18s}.ch-stats.is-visible>div:nth-child(3){animation-delay:.36s}
+@keyframes ch-stat-rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes ch-stats-scan{0%{opacity:0;transform:translateX(-115%)}12%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translateX(115%)}}
 .ch-frame--age.is-visible .ch-red{animation:ch-age-emphasis 1.5s .6s both cubic-bezier(.16,1,.3,1)}@keyframes ch-age-emphasis{from{opacity:.3;letter-spacing:.02em}to{opacity:1;letter-spacing:-.04em}}
 .ch-stats{margin-bottom:0}.ch-features{padding-top:100px}
 @media(max-width:760px){.ch-feature-row{gap:5%;padding:55px 0}.ch-frame{padding:17px}.ch-section-heading{padding-bottom:55px}.ch-feature-copy h3{font-size:clamp(31px,4.6vw,45px)}.ch-feature-copy p{font-size:14px}}
@@ -37,5 +41,5 @@
 .ch-feature-copy>a:not(.glass-button-shell):hover span{transform:translate(3px,-3px)}
 .ch-footer a{position:relative}.ch-footer a::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .35s cubic-bezier(.16,1,.3,1)}.ch-footer a:hover::after{transform:scaleX(1)}
 @keyframes ch-panel-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.ch-market-row,.ch-frame-inner{opacity:1;transform:none}.ch-feature-copy.is-visible>*,.ch-stats.is-visible>div b,.ch-frame--age.is-visible .ch-red{animation:none}}
+@media(prefers-reduced-motion:reduce){.ch-market-row,.ch-frame-inner,.ch-stats>div{opacity:1;transform:none}.ch-feature-copy.is-visible>*,.ch-stats.is-visible>div,.ch-stats.is-visible::before,.ch-frame--age.is-visible .ch-red{animation:none}}
 @media(prefers-reduced-motion:reduce){.ch-feature-row::before{transform:none}.ch-frame.reveal{opacity:1;transform:none}.ch-frame.is-visible .ch-position-panels>div,.ch-frame.is-visible .ch-age-ui>div{animation:none}}
