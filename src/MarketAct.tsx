@@ -37,8 +37,8 @@ export default function MarketAct() {
       const span = Math.max(1, element.offsetHeight - window.innerHeight);
       const progress = Math.max(0, Math.min(1, -element.getBoundingClientRect().top / span));
       if (progressBar.current) progressBar.current.style.transform = `scaleX(${progress})`;
-      setPhase(current => current === Number(progress >= .48) ? current : Number(progress >= .48));
-      const index = Math.min(3, Math.max(0, Math.floor((progress - .5) / .125)));
+      setPhase(current => current === Number(progress >= .52) ? current : Number(progress >= .52));
+      const index = Math.min(3, Math.max(0, Math.floor((progress - .54) / .145)));
       setMomentIndex(current => current === index ? current : index);
     };
     const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(update); } };
@@ -70,14 +70,15 @@ export default function MarketAct() {
     if (!element) return;
     const start = element.getBoundingClientRect().top + window.scrollY;
     const span = element.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: start + span * (.54 + index * .125), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    window.scrollTo({ top: start + span * (.56 + index * .145), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   };
 
   return <section className="market-act-track" ref={track} aria-label="Prisma market and price age walkthrough">
     <span className="market-act-age-anchor" id="price-age" aria-hidden="true" />
     <div className={`market-act ${phase === 1 ? 'market-act--age' : ''}`} ref={stage} onPointerMove={moveLight} onPointerLeave={() => { if (pointerFrame.current !== null) cancelAnimationFrame(pointerFrame.current); pointerFrame.current = null; stage.current?.style.removeProperty('--light-x'); stage.current?.style.removeProperty('--light-y'); }}>
       <div className="market-act-background" aria-hidden="true">
-        {canUseShader ? <Suspense fallback={<div className="market-act-background-fallback" />}><HeroShader /></Suspense> : <div className="market-act-background-fallback" />}
+        <div className="market-act-background-fallback" />
+        {canUseShader && <Suspense fallback={null}><HeroShader /></Suspense>}
       </div>
       <div className="market-act-progress"><span ref={progressBar} /></div>
       <header className="market-act-header"><span>{phase === 0 ? '01 / THE MARKET' : '02 / PRICE AGE'}</span></header>
@@ -85,7 +86,7 @@ export default function MarketAct() {
       <div className="market-act-scene market-act-scene--market" aria-hidden={phase === 1}>
         <div className="market-act-copy"><span className="market-act-kicker">ONE ASSET / ONE LIMIT</span><h2>See the<br/>whole<br/><em>market.</em></h2><p>Before a position is opened: the collateral, borrow asset, loan limit and age of its price, all in one view.</p></div>
         <div className="market-act-board" aria-label="Illustrative market preview">
-          <div className="market-act-board-top"><span>MARKET / {String(selected + 1).padStart(2, '0')}</span><span>ILLUSTRATIVE DATA</span></div>
+          <div className="market-act-board-top"><span>MARKET / {String(selected + 1).padStart(2, '0')}</span></div>
           <div className="market-act-identity" key={market.symbol}><img src={tokenLogo(market.symbol)} alt=""/><div><small>{market.name}</small><strong>{market.symbol}<span> / {market.pair}</span></strong></div></div>
           <div className="market-act-metrics"><div><small>LOAN LIMIT</small><b>{market.limit}</b></div><div><small>SUPPLIED</small><b>{market.supplied}</b></div><div><small>BORROWED</small><b>{market.borrowed}</b></div></div>
           <div className="market-act-age-line"><span>PRICE AGE</span><b>{market.age}</b><i aria-hidden="true"/></div>
