@@ -15,11 +15,20 @@ if (!collateral.owner.equals(TOKEN_2022)) throw new Error(`NVDAx is not owned by
 if (!borrow.owner.equals(TOKEN)) throw new Error(`USDC is not owned by the classic Token Program: ${borrow.owner.toBase58()}`);
 
 let feed = process.env.PRISMA_CHAINLINK_FEED || '';
-if (!feed) {
+{
   const response = await fetch('https://api.xstocks.fi/api/v2/public/oracles/NVDAx?network=Solana&managedBy=Chainlink&page=0&pageSize=50');
-  if (!response.ok) throw new Error(`xStocks oracle API returned ${response.status}. Pass --feed with the official NVDAx/USD Chainlink feed.`);
+  if (!response.ok) throw new Error(`xStocks oracle API returned ${response.status}; cannot verify NVDAx oracle.`);
   const payload = await response.json() as { nodes?: Array<Record<string, unknown>> };
   for (const node of payload.nodes || []) {
+    if (node.feedType === 'PullBased') {
+      const metadata = node.metadata as Record<string, unknown> | undefined;
+      throw new Error(
+        `NVDAx on Solana uses a Chainlink PullBased Data Stream (schema ${String(metadata?.reportSchema || 'unknown')}, ` +
+        `feed ID ${String(metadata?.feedId || 'unknown')}). This program reads push-based feed accounts and CANNOT use ` +
+        `a feed ID, verifier program, or manually supplied push feed as --feed. Deploy is blocked until the program and transaction clients ` +
+        `verify signed v10 reports through the Chainlink Solana Data Streams verifier.`,
+      );
+    }
     for (const key of ['address', 'contractAddress', 'oracleAddress', 'feedAddress', 'account']) {
       const value = node[key];
       if (typeof value !== 'string') continue;
@@ -28,7 +37,7 @@ if (!feed) {
     if (feed) break;
   }
 }
-if (!feed) throw new Error('Could not resolve the NVDAx Chainlink feed. Pass --feed with the official feed account.');
+if (!feed) throw new Error('No NVDAx Solana push-feed account was published. Do not substitute another asset or a Data Streams verifier address.');
 const feedKey = new PublicKey(feed);
 const feedAccount = await conn.getAccountInfo(feedKey);
 if (!feedAccount) throw new Error('Resolved Chainlink feed account does not exist.');
