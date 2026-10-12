@@ -6,7 +6,8 @@ export default function handler(req: any, res: any) {
     ok: true,
     service: 'prisma-api',
     version: 1,
-    contractsConfigured: false,
+    network: 'solana-mainnet-beta',
+    contractsConfigured: Boolean(process.env.PRISMA_PROGRAM_ID && process.env.PRISMA_MARKET_ADDRESS),
     timestamp: new Date().toISOString(),
   });
 }

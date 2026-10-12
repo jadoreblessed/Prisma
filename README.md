@@ -1,8 +1,8 @@
 # Prisma
 
-Prisma's landing page uses the Axion-inspired layout supplied in the brief, adapted to tokenized equity lending. The first screen combines a four-layer animated shader with a pill navigation and direct market CTA. The following sections explain isolated markets and price age.
+Prisma is an isolated lending interface and Solana program for tokenized equities. The first prepared market is `NVDAx / USDC` on Solana mainnet-beta. The program supports Token-2022 collateral, classic SPL liquidity, lender and debt shares, fixed-rate interest accrual, Chainlink price validation, isolated risk limits, liquidation, caps, emergency pause, and a two-step authority transfer.
 
-The Markets and Docs views are part of the same app at `#/markets` and `#/docs`. The market list is an illustrative snapshot with search, category tabs and detail views. Wallet actions show a prototype notice; no transaction or live oracle is connected.
+The website includes the landing page, Markets, Vaults, Stake, Claim, Docs and FAQ views. Phantom connection and server-side quote previews are enabled. Onchain transaction buttons remain disabled until a deployed market address is published.
 
 ## Local development
 
@@ -17,4 +17,15 @@ npm run dev
 npm run build
 ```
 
-Publish `dist` to a static host. The hash routes work without server rewrites. WebGPU is used for the hero shader when available; the light gray background remains readable if it is unavailable.
+## Solana mainnet release
+
+The release is intentionally fail-closed. Initialization always creates a paused market with both caps set to zero, so deployment cannot accept USDC or NVDAx.
+
+```bash
+npm --prefix protocol install
+bash scripts/release-mainnet.sh
+```
+
+The script verifies the Solana mainnet genesis hash, official mint owners and Chainlink feed owner before building and deploying. See `mainnet/README.md` for wallet, RPC, audit, multisig and activation requirements.
+
+Publish `dist` to a static host. Hash routes work without server rewrites. WebGPU powers the hero shader when available and the video fallback keeps the page readable on unsupported devices.

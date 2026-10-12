@@ -1,0 +1,18 @@
+{
+  "cluster": "mainnet-beta",
+  "programId": "HYDdzcdDmcGJfVd5oXAKJ4MLrJQNFuekuAgvXZgNwnPG",
+  "symbol": "NVDAx/USDC",
+  "collateralMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+  "borrowMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "chainlinkFeed": "REPLACE_FROM_XSTOCKS_PUBLIC_ORACLE_API",
+  "loanToValueBps": 5000,
+  "liquidationThresholdBps": 6250,
+  "liquidationBonusBps": 500,
+  "borrowRateBps": 800,
+  "maxOracleAgeSeconds": 180,
+  "supplyCapBaseUnits": "0",
+  "borrowCapBaseUnits": "0",
+  "paused": true,
+  "note": "Caps remain zero and the market remains paused until audit sign-off."
+}
+

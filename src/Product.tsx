@@ -10,7 +10,7 @@ type ApiMarket={id:string;collateral:string;borrowAsset:string;supplied:number;b
 type Quote={action:'lend'|'borrow';asset?:string;borrowAsset?:string;apy?:number;estimatedAnnualInterest?:number;maximumBorrow?:number;saferBorrow?:number;executable:boolean;reason?:string};
 const fallbackMarkets=marketData as Market[];
 const toMarket=(m:ApiMarket):Market=>[m.collateral,m.borrowAsset,m.supplied,m.borrowed,m.supplyApy,m.borrowApy,m.priceAge,m.category,m.loanLimit,m.id];
-declare global{interface Window{ethereum?:{request:(args:{method:string;params?:unknown[]})=>Promise<unknown>}}}
+declare global{interface Window{solana?:{isPhantom?:boolean;connect:()=>Promise<{publicKey:{toString:()=>string}}>;disconnect?:()=>Promise<void>}}}
 const compact=(n:number)=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n.toFixed(2);
 const nav=[['Markets','markets'],['Vaults','vaults'],['Stake','stake'],['Claim','claim'],['Docs','docs'],['FAQ','faq']];
 function Token({symbol}:{symbol:string}){const [failed,setFailed]=useState(false);return <span className="product-icon">{!failed&&<img src={tokenLogo(symbol)} alt="" onError={()=>setFailed(true)}/>}<b>{symbol.slice(0,2)}</b></span>}
@@ -29,7 +29,7 @@ export default function Product({route}:{route:string}){
   const [selected,setSelected]=useState<Market|null>(null),[notice,setNotice]=useState(false),[stakeTab,setStakeTab]=useState<'Stake'|'Unstake'>('Stake'),[openFaq,setOpenFaq]=useState<number|null>(0);
   const [wallet,setWallet]=useState(''),[walletError,setWalletError]=useState(''),[amount,setAmount]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[quoteLoading,setQuoteLoading]=useState(false);
   useEffect(()=>{const controller=new AbortController();fetch('/api/markets?limit=250',{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error('api');return r.json()}).then((data:{rows?:ApiMarket[]})=>{if(data.rows?.length){setMarkets(data.rows.map(toMarket));setApiOnline(true)}}).catch(()=>{});return()=>controller.abort()},[]);
-  const connectWallet=async()=>{if(!window.ethereum){setWalletError('Install a browser wallet such as MetaMask to connect.');setNotice(true);return}try{const accounts=await window.ethereum.request({method:'eth_requestAccounts'}) as string[];if(accounts?.[0]){setWallet(accounts[0]);setWalletError('')}}catch{setWalletError('The wallet connection request was cancelled.');setNotice(true)}};
+  const connectWallet=async()=>{if(!window.solana?.isPhantom){setWalletError('Install Phantom to connect to Prisma on Solana.');setNotice(true);return}try{const result=await window.solana.connect();const address=result.publicKey.toString();if(address){setWallet(address);setWalletError('')}}catch{setWalletError('The Phantom connection request was cancelled.');setNotice(true)}};
   const requestQuote=async(action:'lend'|'borrow')=>{if(!selected||!Number.isFinite(Number(amount))||Number(amount)<=0)return;setQuoteLoading(true);setQuote(null);try{const response=await fetch('/api/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,marketId:selected[9],amount:Number(amount)})});if(!response.ok)throw new Error('quote');setQuote(await response.json())}catch{setWalletError('The quote service is temporarily unavailable.');setNotice(true)}finally{setQuoteLoading(false)}};
   const visible=useMemo(()=>markets.filter(m=>(filter==='all'||m[7]===filter)&&`${m[0]} ${m[1]}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>b[sort]-a[sort]),[query,filter,sort]);
   return <div className="product-page">

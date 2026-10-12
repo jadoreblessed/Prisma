@@ -1,0 +1,21 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.mainnet]
+prisma_lending = "HYDdzcdDmcGJfVd5oXAKJ4MLrJQNFuekuAgvXZgNwnPG"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "mainnet"
+wallet = "~/.config/solana/prisma-mainnet.json"
+
+[scripts]
+verify = "npm --prefix protocol run resolve"
+initialize = "npm --prefix protocol run initialize"
+

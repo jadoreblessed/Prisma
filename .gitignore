@@ -1,3 +1,11 @@
 node_modules/
 dist/
 *.log
+target/
+protocol/node_modules/
+mainnet/market.json
+mainnet/deployment.json
+**/*-keypair.json
+.env
+.env.*
+!.env.example
