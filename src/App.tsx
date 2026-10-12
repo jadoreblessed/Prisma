@@ -14,14 +14,17 @@ function Landing() {
   const [canUseShader]=useState(()=>typeof navigator!=='undefined' && 'gpu' in navigator && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(()=>{document.body.style.overflow=menuOpen?'hidden':'';return()=>{document.body.style.overflow=''}},[menuOpen]);
   useEffect(()=>{
-    const items=document.querySelectorAll<HTMLElement>('.reveal, .ch-feature-row');
+    const items=document.querySelectorAll<HTMLElement>('.reveal:not(.ch-stats), .ch-feature-row');
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.01,rootMargin:'0px 0px 20% 0px'});
-    items.forEach(item=>observer.observe(item));return()=>observer.disconnect();
+    items.forEach(item=>observer.observe(item));
+    const statsObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');statsObserver.unobserve(entry.target)}}),{threshold:.15,rootMargin:'0px 0px -5% 0px'});
+    document.querySelectorAll<HTMLElement>('.ch-stats').forEach(item=>statsObserver.observe(item));
+    return()=>{observer.disconnect();statsObserver.disconnect()};
   },[]);
   const nav=[['Markets',MARKETS],['How it works','#how'],['Price age','#price-age'],['Docs',DOCS]];
   return <div className="landing-v2">
     <section className="landing-hero" id="top">
-      <div className="hero-shader" aria-hidden="true">{canUseShader?<Suspense fallback={<div className="hero-fallback"/>}><HeroShader/></Suspense>:<div className="hero-fallback"/>}</div>
+      <div className="hero-shader" aria-hidden="true"><div className="hero-fallback"/>{canUseShader&&<Suspense fallback={null}><HeroShader/></Suspense>}</div>
       <div className="hero-foreground">
         <header className="landing-header"><nav className="landing-nav" aria-label="Main navigation">
           <div className="landing-nav__left"><a className="landing-logo" href="#top" aria-label="Prisma home"><PrismaMark/></a><div className="landing-nav__links">{nav.map(([label,href])=><a href={href} key={label}>{label}</a>)}</div></div>
@@ -30,7 +33,7 @@ function Landing() {
         </nav></header>
         <div className="hero-content">
           <h1><span className="hero-title-line"><span>Every market,</span></span><span className="hero-title-line"><span>a clearer view</span></span><span className="hero-title-line"><span>of the risk.</span></span></h1>
-          <p className="hero-description">Explore tokenized equity lending. NVDAx transactions open on Kamino; verified price age will appear when its oracle timestamp is available.</p>
+          <p className="hero-description">Borrow against tokenized equities. See the asset, loan limit and age of its price before you act.</p>
           <div className="hero-actions"><GlassButton href={MARKETS} arrow>Explore markets</GlassButton><span className="hero-badge">CA coming soon</span></div>
         </div><span className="hero-corner">01 / 02&nbsp; &nbsp; SCROLL TO EXPLORE</span>
       </div>
