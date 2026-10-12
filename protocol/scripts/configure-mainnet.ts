@@ -1,6 +1,9 @@
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { assertMainnet, anchorProgram, marketAddresses, readConfig, u64 } from './common.js';
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { root } from './common.js';
 
 if (process.env.PRISMA_ACTIVATION_ACK !== 'I_ACCEPT_MAINNET_RISK') {
   throw new Error('Refusing market configuration. Set PRISMA_ACTIVATION_ACK=I_ACCEPT_MAINNET_RISK after audit and operational review.');
@@ -31,3 +34,5 @@ if (after.supplyCap.toString() !== supplyCap.toString() || after.borrowCap.toStr
   throw new Error('Post-configuration state does not match the requested caps/pause state.');
 }
 console.log(JSON.stringify({ signature, market: market.toBase58(), supplyCapBaseUnits: supplyCap.toString(), borrowCapBaseUnits: borrowCap.toString(), paused: after.paused }, null, 2));
+const exported = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/export-deployment-env.ts'], { cwd: resolve(root, 'protocol'), stdio: 'inherit', env: process.env });
+if (exported.status !== 0) throw new Error('Market changed, but frontend runtime export failed. Run npm --prefix protocol run export-env.');

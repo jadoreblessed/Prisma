@@ -13,7 +13,7 @@ This repository is prepared to deploy one isolated `NVDAx / USDC` market. Deploy
 7. creates and preserves a dedicated program keypair under `mainnet/keys/`;
 8. builds twice around `anchor keys sync`, deploys, and initializes the market;
 9. re-reads every address and safety invariant from mainnet;
-10. exports the public addresses to `mainnet/frontend.env` with transactions disabled.
+10. exports the public addresses, verified state and matching Anchor IDL for the web app. Transactions remain disabled while the market is paused or either cap is zero.
 
 The release is idempotent: rerunning it uses the preserved program keypair, upgrades the same program if the deploy wallet still controls it, and validates the existing market instead of creating a second one.
 
@@ -54,6 +54,8 @@ Generated files:
 - `mainnet/deployment.json` — program, market, vaults, oracle and initialization signature
 - `mainnet/program.json` — onchain program/upgrade-authority record from the Solana CLI
 - `mainnet/frontend.env` — public frontend/server addresses; transactions remain disabled
+- `public/protocol/deployment.json` — browser-safe runtime state and public addresses
+- `public/protocol/prisma_lending.json` — the exact IDL built for the deployed program
 
 ## Read-only status
 
@@ -97,7 +99,7 @@ export PRISMA_UNPAUSE=true
 npm --prefix protocol run configure
 ```
 
-The values are raw USDC base units. The example above is illustrative, not a recommended risk limit. The activation command re-reads the resulting state and fails if it does not match.
+The values are raw USDC base units. The example above is illustrative, not a recommended risk limit. The activation command re-reads the resulting state, fails if it does not match, and refreshes the browser manifest. Rebuild/redeploy the web app after configuration. Set `VITE_SOLANA_RPC_URL` on the web host to a browser-allowed production RPC; never embed an admin RPC secret.
 
 ## Production boundary
 

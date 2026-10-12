@@ -19,7 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm --prefix protocol ci
-      - run: ./node_modules/.bin/tsc --noEmit --module nodenext --moduleResolution nodenext --target es2022 --skipLibCheck protocol/scripts/*.ts
+      - run: npm --prefix protocol run typecheck
 
   program:
     runs-on: ubuntu-latest

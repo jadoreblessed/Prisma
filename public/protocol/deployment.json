@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "configured": false,
+  "cluster": "mainnet-beta",
+  "transactionsEnabled": false,
+  "paused": true,
+  "supplyCapBaseUnits": "0",
+  "borrowCapBaseUnits": "0"
+}
