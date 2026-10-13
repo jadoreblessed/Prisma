@@ -31,6 +31,12 @@ export default function Product({route}:{route:string}){
   const [selected,setSelected]=useState<Market|null>(null),[notice,setNotice]=useState(false),[stakeTab,setStakeTab]=useState<'Stake'|'Unstake'>('Stake'),[openFaq,setOpenFaq]=useState<number|null>(0);
   const [wallet,setWallet]=useState(''),[walletError,setWalletError]=useState(''),[amount,setAmount]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[quoteLoading,setQuoteLoading]=useState(false);
   useEffect(()=>{const controller=new AbortController();fetch('/api/markets?limit=250',{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error('api');return r.json()}).then((data:{rows?:ApiMarket[]})=>{if(data.rows?.length){setMarkets(data.rows.map(toMarket));setApiOnline(true)}}).catch(()=>{});return()=>controller.abort()},[]);
+  useEffect(()=>{const phantom=window.phantom?.solana||window.solana;if(!phantom?.isPhantom)return;
+    const changed=(key?:{toBase58:()=>string}|null)=>setWallet(key?.toBase58()||'');
+    const disconnected=()=>setWallet('');
+    phantom.on?.('accountChanged',changed);phantom.on?.('disconnect',disconnected);
+    return()=>{phantom.off?.('accountChanged',changed);phantom.off?.('disconnect',disconnected)};
+  },[]);
   const connectWallet=async()=>{const phantom=window.phantom?.solana||window.solana;if(!phantom?.isPhantom){setWalletError('Install Phantom to connect to Prisma on Solana.');setNotice(true);return}try{const result=await phantom.connect();const address=result.publicKey.toString();if(address){setWallet(address);setWalletError('')}}catch{setWalletError('The Phantom connection request was cancelled.');setNotice(true)}};
   const requestQuote=(action:'lend'|'borrow')=>{if(!selected)return;const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>1e12)return;setQuoteLoading(true);const round=(n:number)=>Number(n.toFixed(6));setQuote(action==='lend'?{action,asset:selected[1],apy:selected[4],estimatedAnnualInterest:round(value*selected[4]/100),executable:false,reason:'illustrative_snapshot'}:{action,borrowAsset:selected[1],maximumBorrow:round(value*selected[8]/100),saferBorrow:round(value*selected[8]/100*.8),executable:false,reason:'illustrative_snapshot'});setQuoteLoading(false)};
   const visible=useMemo(()=>markets.filter(m=>(filter==='all'||m[7]===filter)&&`${m[0]} ${m[1]}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>b[sort]-a[sort]),[query,filter,sort]);
