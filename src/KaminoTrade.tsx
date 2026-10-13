@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
+import { PublicKey, VersionedTransaction } from '@solana/web3.js';
 import type { PhantomProvider } from './protocolClient';
 
-const RPC = 'https://api.mainnet-beta.solana.com';
 const KLEND = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
 type Action = 'supply' | 'collateral' | 'borrow' | 'withdraw' | 'removeCollateral' | 'repay';
 type Market = { market: string; collateralMint: string; collateralReserve: string; borrowMint: string; borrowReserve: string; collateralSymbol: string; maxLtv: number; liquidationLtv: number };
@@ -15,6 +14,7 @@ const messages: Record<string, string> = {
   deposit_required: 'No matching deposit is available to withdraw.',
   debt_required: 'No USDC debt is available to repay.',
   insufficient_token_balance: 'Not enough of this token in your wallet.',
+  invalid_wallet: 'Reconnect Phantom and try again.',
   market_unavailable: 'This live market is unavailable right now.',
   reserve_mismatch: 'Market verification failed. No transaction was created.',
   simulation_failed: 'The transaction did not pass mainnet simulation. Check your balance and position.',
@@ -23,6 +23,21 @@ const messages: Record<string, string> = {
 
 function decode(base64: string) {
   return VersionedTransaction.deserialize(Uint8Array.from(atob(base64), character => character.charCodeAt(0)));
+}
+
+async function waitForConfirmation(signature: string): Promise<'confirmed' | 'failed' | 'pending'> {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    try {
+      const response = await fetch(`/api/transaction-status?signature=${encodeURIComponent(signature)}`, { cache: 'no-store' });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'confirmed' || result.status === 'finalized') return 'confirmed';
+        if (result.status === 'failed') return 'failed';
+      }
+    } catch { /* A temporary RPC error does not mean that the submitted transaction failed. */ }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  return 'pending';
 }
 
 export default function KaminoTrade({ asset, market, wallet, onConnect, onComplete }: {
@@ -72,11 +87,11 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
       const transaction = decode(prepared.transaction);
       const { signature: submitted } = await phantom.signAndSendTransaction(transaction);
       setSignature(submitted);
-      const result = await new Connection(RPC, 'confirmed').confirmTransaction({
-        signature: submitted, blockhash: prepared.blockhash, lastValidBlockHeight: prepared.lastValidBlockHeight,
-      }, 'confirmed');
-      if (result.value.err) throw new Error('Transaction failed onchain: ' + JSON.stringify(result.value.err));
-      setPrepared(null); setAmount(''); onComplete();
+      const status = await waitForConfirmation(submitted);
+      setPrepared(null);
+      if (status === 'failed') throw new Error('Transaction failed onchain. Open its receipt for details.');
+      if (status === 'pending') throw new Error('Submitted to Phantom. Confirmation is still pending; check the receipt before trying again.');
+      setAmount(''); onComplete();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Phantom transaction failed.'); }
     finally { setBusy(false); }
   }
