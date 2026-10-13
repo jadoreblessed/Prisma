@@ -31,15 +31,18 @@ function PositionAssets({ title, items }: { title: string; items: PositionAsset[
 
 export default function LiveMarketInfo({ asset, wallet }: { asset: string; wallet?: string }) {
   const [market, setMarket] = useState<LiveMarket | null>(null);
+  const [marketLoading, setMarketLoading] = useState(true);
   const [position, setPosition] = useState<LivePosition | null>(null);
   const [positionLoading, setPositionLoading] = useState(false);
   useEffect(() => {
     let active = true;
     setMarket(null);
+    setMarketLoading(true);
     fetch('/api/live-market?asset=' + encodeURIComponent(asset), { cache: 'no-store' })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (active) setMarket(data?.available ? data.market : null); })
-      .catch(() => { if (active) setMarket(null); });
+      .catch(() => { if (active) setMarket(null); })
+      .finally(() => { if (active) setMarketLoading(false); });
     return () => { active = false; };
   }, [asset]);
   useEffect(() => {
@@ -60,7 +63,11 @@ export default function LiveMarketInfo({ asset, wallet }: { asset: string; walle
       .finally(() => { if (active) setPositionLoading(false); });
     return () => { active = false; };
   }, [asset, wallet]);
-  if (!market) return null;
+  if (!market) return <div className="product-live-info" role="status">
+    <span className="product-kicker">VERIFIED MARKET · SOLANA</span>
+    <p>{marketLoading ? 'Checking this xStock / USDC reserve…' : 'Verified reserve data is unavailable right now.'}</p>
+    <p className="product-disclaimer">If the reserve cannot be verified, Prisma will not display lending terms for it.</p>
+  </div>;
   return <div className="product-live-info">
     <span className="product-kicker">LIVE RESERVE DATA · SOLANA</span>
     <h3>{market.collateralSymbol} / {market.borrowSymbol}</h3>
@@ -71,7 +78,7 @@ export default function LiveMarketInfo({ asset, wallet }: { asset: string; walle
       <div><span>Liquidation LTV</span><strong>{(market.liquidationLtv * 100).toFixed(1)}%</strong></div>
     </div>
     {wallet && <div className="product-live-position" aria-live="polite">
-      <span className="product-kicker">YOUR POSITION · LIVE FROM KAMINO</span>
+      <span className="product-kicker">YOUR {asset}x COLLATERAL POSITION · LIVE FROM KAMINO</span>
       {positionLoading ? <strong>Checking wallet…</strong> : position
         ? position.positions.length ? position.positions.map((item, index) => <div className="product-live-position__entry" key={index}>
           <div className="product-live-position__stats">
@@ -84,8 +91,8 @@ export default function LiveMarketInfo({ asset, wallet }: { asset: string; walle
           <PositionAssets title="BORROWED" items={item.borrows}/>
         </div>) : <strong>No open position in this market</strong>
         : <strong>Position data unavailable</strong>}
-      <small>Read-only for {wallet.slice(0, 5)}…{wallet.slice(-4)}. Prisma does not sign or send transactions.</small>
+      <small>Shows positions with {asset}x collateral, not separate USDC-only deposits. Read-only for {wallet.slice(0, 5)}…{wallet.slice(-4)}.</small>
     </div>}
-    <p className="product-disclaimer">The catalogue row and quote above are illustrative USDG previews. This USDC reserve is separate. Transactions are not enabled in Prisma.</p>
+    <p className="product-disclaimer">Terms are from the verified USDC reserve. Price age is unavailable until the lending oracle timestamp can be verified. Transactions are not enabled in Prisma.</p>
   </div>;
 }
