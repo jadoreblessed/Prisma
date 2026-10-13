@@ -1,4 +1,4 @@
-import { resolveLiveMarket } from './_live-market';
+import { resolveLiveMarket } from './_live-market.ts';
 
 function send(req: any, res: any, status: number, body: { available: boolean; market?: unknown; error?: string }) {
   res.statusCode = status;
