@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PublicKey, VersionedTransaction } from '@solana/web3.js';
 import type { PhantomProvider } from './protocolClient';
 
@@ -50,10 +50,12 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [signature, setSignature] = useState('');
-  useEffect(() => { setPrepared(null); setAmount(''); setError(''); setSignature(''); }, [asset, wallet]);
+  const revision = useRef(0);
+  useEffect(() => { revision.current++; setPrepared(null); setAmount(''); setError(''); setSignature(''); }, [asset, wallet]);
 
   async function prepare() {
     if (!wallet || busy) return;
+    const requestRevision = revision.current;
     setBusy(true); setError(''); setPrepared(null); setSignature('');
     try {
       const response = await fetch('/api/kamino-prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -70,8 +72,9 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
           !transaction.message.staticAccountKeys[0].equals(new PublicKey(wallet)) ||
           transaction.message.recentBlockhash !== result.blockhash ||
           !transaction.message.staticAccountKeys.some(key => key.toBase58() === KLEND)) throw new Error('Transaction verification failed.');
+      if (revision.current !== requestRevision) return;
       setPrepared(result); setPreparedAt(Date.now());
-    } catch (cause) { setError(cause instanceof Error ? cause.message : messages.preflight_failed); }
+    } catch (cause) { if (revision.current === requestRevision) setError(cause instanceof Error ? cause.message : messages.preflight_failed); }
     finally { setBusy(false); }
   }
 
@@ -101,7 +104,7 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
     <div className="product-trade__tabs" role="group" aria-label="Action">
       {([['supply', 'Supply USDC'], ['collateral', `Add ${market.collateralSymbol}`], ['borrow', 'Borrow USDC'],
         ['withdraw', 'Withdraw USDC'], ['removeCollateral', `Remove ${market.collateralSymbol}`], ['repay', 'Repay USDC']] as const).map(([key, label]) =>
-        <button type="button" key={key} className={action === key ? 'active' : ''} onClick={() => { setAction(key); setPrepared(null); setError(''); }}>{label}</button>)}
+        <button type="button" key={key} className={action === key ? 'active' : ''} onClick={() => { revision.current++; setAction(key); setPrepared(null); setError(''); }}>{label}</button>)}
     </div>
     <p>{action === 'borrow' ? `Borrow USDC against ${market.collateralSymbol} already deposited in this Kamino market.` :
       action === 'collateral' ? `Deposit ${market.collateralSymbol} as collateral before borrowing USDC.` :
@@ -109,7 +112,7 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
       action === 'repay' ? 'Repay USDC debt in this market.' : action === 'withdraw' ? 'Withdraw previously supplied USDC.' :
       'Supply USDC to the verified Kamino reserve.'}</p>
     <label className="product-trade__amount">AMOUNT · {action === 'collateral' || action === 'removeCollateral' ? market.collateralSymbol : 'USDC'}
-      <input inputMode="decimal" autoComplete="off" value={amount} placeholder="0.00" onChange={event => { setAmount(event.target.value); setPrepared(null); setError(''); }}/>
+      <input inputMode="decimal" autoComplete="off" value={amount} placeholder="0.00" onChange={event => { revision.current++; setAmount(event.target.value); setPrepared(null); setError(''); }}/>
     </label>
     {!wallet ? <button type="button" onClick={onConnect}>Connect Phantom</button> :
       <button type="button" disabled={busy || !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(amount)} onClick={prepare}>{busy ? 'Checking mainnet…' : 'Review transaction'}</button>}
