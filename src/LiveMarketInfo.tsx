@@ -22,12 +22,22 @@ const money = (value: number | null) => value === null ? '—' : new Intl.Number
   style: 'currency', currency: 'USD', maximumFractionDigits: 2,
 }).format(value);
 
+const tokenAmount = (raw: string) => {
+  const amount = Number(raw);
+  if (!Number.isFinite(amount)) return raw;
+  if (amount > 0 && amount < 0.000001) return '<0.000001';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: amount >= 0.01 ? 2 : 0,
+    maximumFractionDigits: amount >= 0.01 ? 2 : 6,
+  }).format(amount);
+};
+
 function PositionAssets({ title, items }: { title: string; items: PositionAsset[] }) {
   if (!items.length) return null;
   return <div className="product-live-position__assets">
     <span>{title}</span>
     {items.map(item => <div key={item.mint}>
-      <b>{item.amount} {item.symbol}</b><small>{money(item.value)}</small>
+      <b title={`${item.amount} ${item.symbol}`}>{tokenAmount(item.amount)} {item.symbol}</b><small>{money(item.value)}</small>
     </div>)}
   </div>;
 }
