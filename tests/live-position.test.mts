@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PublicKey } from '@solana/web3.js';
-import handler, { positionsForMarket } from '../api/live-position.ts';
+import handler, { positionsForMarket, suppliedUsdcForMarket } from '../api/live-position.ts';
 
 const wallet = 'AcNSmd5CxwLs21TYUmhWt7CW2v159TdYRkvQxb1iBYRj';
 const market = '5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua';
@@ -50,6 +50,16 @@ test('invalid public keys are rejected before any upstream request', async () =>
     assert.equal(result.res.statusCode, 400);
     assert.equal(result.read().error, 'invalid_asset_or_wallet');
   } finally { globalThis.fetch = original; }
+});
+
+test('USDC-only supply is visible without attributing it to a particular xStock', () => {
+  const mint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+  const portfolio = { lending: [
+    { market, deposits: [{ mint, symbol: 'USDC', amount: '5', value: 5 }] },
+    { market: collateralReserve, deposits: [{ mint, symbol: 'USDC', amount: '999', value: 999 }] },
+  ] };
+  assert.equal(positionsForMarket(portfolio, market, collateralMint, mint).length, 0);
+  assert.deepEqual(suppliedUsdcForMarket(portfolio, market).map(row => row.amount), ['5']);
 });
 
 test('position route resolves the market and requests the wallet portfolio read-only', async () => {
