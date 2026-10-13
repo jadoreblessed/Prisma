@@ -52,8 +52,8 @@ export async function resolveLiveMarket(asset: string): Promise<LiveMarket | nul
   const listing = await kaminoJson('/markets/collateral-reserves');
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
   const symbol = asset + 'x';
-  const slug = `${symbol.toLowerCase()}-xstocks`;
-  const candidates = rows.filter(row => row.slugs?.includes(slug) &&
+  const slug = `${symbol.toLowerCase()}-stables`;
+  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
     /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
     validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
   const market = candidates[0]?.lendingMarket;
@@ -97,35 +97,6 @@ function send(req: any, res: any, status: number, body: { available: boolean; ma
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return send(req, res, 405, { available: false, error: 'method_not_allowed' });
-  if (req.query?.inspect === '1' && String(req.headers?.accept || '').includes('text/html')) {
-    try {
-      const listing = await kaminoJson('/markets/collateral-reserves');
-      const rows = Array.isArray(listing) ? listing : listing?.collateralReserves;
-      const collateral = rows?.find((row: any) => row.slugs?.includes('nvdax-xstocks'));
-      const metrics = collateral?.lendingMarket ? await kaminoJson(`/kamino-market/${collateral.lendingMarket}/reserves/metrics`) : [];
-      const reserves = Array.isArray(metrics) ? metrics : metrics?.reserves;
-      const summary = {
-        listingKeys: Object.keys(listing || {}).slice(0, 12), listingCount: rows?.length,
-        sampleCollateral: collateral || rows?.[0],
-        matchingCollateral: rows?.filter((row: any) => row.slugs?.some((slug: string) => slug.includes('nvdax'))).map((row: any) => ({
-          name: row.name, lendingMarket: row.lendingMarket, lendingMarketName: row.lendingMarketName,
-          debtTag: row.debtTag, slugs: row.slugs, collateralReserve: row.collateralReserve,
-          collateralMint: row.collateralMint, borrowReserves: row.borrowReserves,
-          borrowReserveTerms: row.borrowReserveTerms,
-        })),
-        metricsKeys: Object.keys(metrics || {}).slice(0, 12), metricsCount: reserves?.length,
-        sampleMetric: reserves?.filter((row: any) => /nvdax?|usdc/i.test(row.liquidityToken || row.symbol || '')),
-        eligibleBorrowMetrics: reserves?.filter((row: any) => collateral?.borrowReserves?.includes(row.reserve)),
-      };
-      const safe = JSON.stringify(summary, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.end(`<!doctype html><html><head><title>Market source shape</title></head><body><pre>${safe}</pre></body></html>`);
-    } catch (error) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      const safeMessage = String(error instanceof Error ? error.message : 'Unknown error').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-      return res.end(`<!doctype html><html><body><h1>Market source error</h1><p>${safeMessage}</p></body></html>`);
-    }
-  }
   try {
     const market = await resolveLiveMarket(String(req.query?.asset || ''));
     if (!market) return send(req, res, 200, { available: false });
