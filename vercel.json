@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/kamino-prepare.ts": {
+      "includeFiles": "node_modules/@orca-so/whirlpools-core/dist/nodejs/orca_whirlpools_core_js_bindings_bg.wasm",
+      "maxDuration": 60
+    }
+  }
+}
