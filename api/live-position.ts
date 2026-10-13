@@ -1,9 +1,8 @@
+import { CATALOGUE_ASSETS } from './_asset-universe.ts';
+import { resolveLiveMarket, type BorrowAsset } from './_live-market.ts';
 const API = 'https://api.kamino.finance';
-const LIVE_ASSETS = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR', 'CRCL', 'HOOD', 'cbBTC']);
-type BorrowAsset = 'USDC' | 'USDG';
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const USDG_MINT = '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH';
 type PortfolioAsset = { mint: string; symbol: string; amount: string; value: number | null; price: number | null };
 type PortfolioPosition = {
   netValue: number | null; totalDepositValue: number | null; totalBorrowValue: number | null;
@@ -85,28 +84,6 @@ async function kaminoJson(path: string): Promise<any> {
   return response.json();
 }
 
-async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset) {
-  if (!LIVE_ASSETS.has(asset)) return null;
-  const listing = await kaminoJson('/markets/collateral-reserves');
-  const symbol = asset === 'cbBTC' ? asset : asset + 'x';
-  const slug = asset === 'cbBTC' ? 'cbbtc-stables-xstocks' : `${symbol.toLowerCase()}-stables`;
-  const rows: any[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
-  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
-    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
-    validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
-  const market = candidates[0]?.lendingMarket;
-  if (!market) return null;
-  const reserves = await kaminoJson(`/kamino-market/${market}/reserves/metrics`);
-  if (!Array.isArray(reserves)) return null;
-  const borrowMint = borrowAsset === 'USDG' ? USDG_MINT : USDC_MINT;
-  const debt = reserves.find(row => row.liquidityToken === borrowAsset && row.liquidityTokenMint === borrowMint && validAddress(row.reserve));
-  const collateral = candidates.find(row => row.lendingMarket === market &&
-    row.borrowReserves?.includes(debt?.reserve) && row.borrowReserveTerms?.some((term: any) => term.reserve === debt?.reserve));
-  if (!collateral || !debt || !reserves.some(row => row.reserve === collateral.collateralReserve &&
-    row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol)) return null;
-  return { market, collateralMint: collateral.collateralMint as string, borrowMint };
-}
-
 function send(res: any, status: number, body: Record<string, unknown>) {
   res.statusCode = status;
   res.setHeader('Cache-Control', 'no-store');
@@ -119,7 +96,7 @@ export default async function handler(req: any, res: any) {
   const asset = String(req.query?.asset || '');
   const borrowAsset = String(req.query?.borrowAsset || 'USDC');
   const wallet = String(req.query?.wallet || '');
-  if (!LIVE_ASSETS.has(asset) || (borrowAsset !== 'USDC' && borrowAsset !== 'USDG') || !validAddress(wallet)) {
+  if (!CATALOGUE_ASSETS.has(asset) || (borrowAsset !== 'USDC' && borrowAsset !== 'USDG') || !validAddress(wallet)) {
     return send(res, 400, { available: false, error: 'invalid_asset_or_wallet' });
   }
 

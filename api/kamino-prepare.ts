@@ -1,11 +1,8 @@
 import type { PublicKey as Web3PublicKey } from '@solana/web3.js';
+import { resolveLiveMarket, type BorrowAsset } from './_live-market.ts';
 const GENESIS = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
 const PROGRAM = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
 const RPC = process.env.PRISMA_MAINNET_RPC || 'https://api.mainnet-beta.solana.com';
-const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const USDG_MINT = '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH';
-const LIVE_ASSETS = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR', 'CRCL', 'HOOD', 'cbBTC']);
-type BorrowAsset = 'USDC' | 'USDG';
 type Action = 'supply' | 'collateral' | 'borrow' | 'withdraw' | 'removeCollateral' | 'repay';
 const ACTIONS: Action[] = ['supply', 'collateral', 'borrow', 'withdraw', 'removeCollateral', 'repay'];
 
@@ -20,39 +17,6 @@ function validAddress(value: unknown): value is string {
     while (carry > 0) { bytes.push(carry & 255); carry >>= 8; }
   }
   return bytes.length + (value.match(/^1*/)?.[0].length || 0) === 32;
-}
-
-async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset) {
-  if (!LIVE_ASSETS.has(asset)) return null;
-  const get = async (path: string) => {
-    const response = await fetch('https://api.kamino.finance' + path, { signal: AbortSignal.timeout(9000) });
-    if (!response.ok) throw new Error('market_unavailable');
-    return response.json();
-  };
-  const listing = await get('/markets/collateral-reserves');
-  const symbol = asset === 'cbBTC' ? asset : asset + 'x';
-  const slug = asset === 'cbBTC' ? 'cbbtc-stables-xstocks' : `${symbol.toLowerCase()}-stables`;
-  const rows: any[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
-  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
-    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
-    validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
-  const market = candidates[0]?.lendingMarket;
-  if (!market) return null;
-  const reserves = await get(`/kamino-market/${market}/reserves/metrics`);
-  if (!Array.isArray(reserves)) return null;
-  const borrowMint = borrowAsset === 'USDG' ? USDG_MINT : USDC_MINT;
-  const debt = reserves.find(row => row.liquidityToken === borrowAsset && row.liquidityTokenMint === borrowMint && validAddress(row.reserve));
-  const collateral = candidates.find(row => row.lendingMarket === market &&
-    row.borrowReserves?.includes(debt?.reserve) && row.borrowReserveTerms?.some((term: any) => term.reserve === debt?.reserve));
-  if (!collateral || !debt || !reserves.some(row => row.reserve === collateral.collateralReserve &&
-    row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol)) return null;
-  const terms = collateral.borrowReserveTerms.find((term: any) => term.reserve === debt.reserve);
-  const maxLtv = Number(terms.maxLtv), liquidationLtv = Number(terms.liquidationLtv);
-  if (!Number.isFinite(maxLtv) || !Number.isFinite(liquidationLtv) ||
-      maxLtv <= 0 || maxLtv >= liquidationLtv || liquidationLtv > 1) return null;
-  return { market, collateralReserve: collateral.collateralReserve as string,
-    collateralMint: collateral.collateralMint as string, borrowReserve: debt.reserve as string,
-    borrowMint, collateralSymbol: symbol, borrowSymbol: borrowAsset };
 }
 
 export function units(value: string, decimals: number): string {

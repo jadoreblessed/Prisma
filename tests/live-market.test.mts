@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PublicKey } from '@solana/web3.js';
 import { resolveLiveMarket } from '../api/live-market.ts';
+import { discoverLiveAssets } from '../api/_live-market.ts';
 
 const market = '5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua';
 const collateralReserve = new PublicKey(new Uint8Array(32).fill(17)).toBase58();
@@ -77,4 +78,23 @@ test('cbBTC requires its own collateral slug and exact mint', async () => {
   globalThis.fetch = async (url: any) => new Response(JSON.stringify(String(url).includes('collateral-reserves') ? { collateralReserves: [bitcoin] } : reserves));
   try { assert.equal((await resolveLiveMarket('cbBTC'))?.collateralSymbol, 'cbBTC'); }
   finally { globalThis.fetch = original; }
+});
+
+test('new catalogue xStocks appear automatically only with matching debt and collateral reserves', async () => {
+  const original = globalThis.fetch;
+  const crwv = { ...listing.collateralReserves[0], name: 'CRWVx Borrow Market', slugs: ['crwvx-stables'] };
+  const rows = { collateralReserves: [listing.collateralReserves[0], crwv] };
+  const verified = [...metrics, { ...metrics[0], liquidityToken: 'CRWVx',
+    liquidityTokenMint: new PublicKey(new Uint8Array(32).fill(22)).toBase58(),
+    reserve: new PublicKey(new Uint8Array(32).fill(23)).toBase58() }];
+  crwv.collateralMint = verified[2].liquidityTokenMint;
+  crwv.collateralReserve = verified[2].reserve;
+  globalThis.fetch = async (url: any) => new Response(JSON.stringify(String(url).includes('collateral-reserves') ? rows : verified));
+  try {
+    const discovered = await discoverLiveAssets();
+    assert.deepEqual(discovered.find(item => item.asset === 'CRWV')?.borrowAssets, ['USDC']);
+    assert.equal((await resolveLiveMarket('CRWV'))?.collateralMint, crwv.collateralMint);
+    crwv.borrowReserves = [];
+    assert.equal(await resolveLiveMarket('CRWV'), null);
+  } finally { globalThis.fetch = original; }
 });
