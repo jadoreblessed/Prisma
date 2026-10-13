@@ -6,7 +6,28 @@ type LiveMarket = {
   maxLtv: number; liquidationLtv: number; updatedAt: string;
 };
 
-type LivePosition = { obligationCount: number };
+type PositionAsset = { mint: string; symbol: string; amount: string; value: number | null };
+type LivePosition = {
+  positions: Array<{
+    netValue: number | null; totalDepositValue: number | null; totalBorrowValue: number | null;
+    ltv: number | null; maxLtv: number | null; liquidationLtv: number | null;
+    deposits: PositionAsset[]; borrows: PositionAsset[];
+  }>;
+};
+
+const money = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', {
+  style: 'currency', currency: 'USD', maximumFractionDigits: 2,
+}).format(value);
+
+function PositionAssets({ title, items }: { title: string; items: PositionAsset[] }) {
+  if (!items.length) return null;
+  return <div className="product-live-position__assets">
+    <span>{title}</span>
+    {items.map(item => <div key={item.mint}>
+      <b>{item.amount} {item.symbol}</b><small>{money(item.value)}</small>
+    </div>)}
+  </div>;
+}
 
 export default function LiveMarketInfo({ asset, wallet }: { asset: string; wallet?: string }) {
   const [market, setMarket] = useState<LiveMarket | null>(null);
@@ -31,8 +52,8 @@ export default function LiveMarketInfo({ asset, wallet }: { asset: string; walle
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (!active) return;
-        setPosition(data?.available && Number.isInteger(data.obligationCount)
-          ? { obligationCount: data.obligationCount }
+        setPosition(data?.available && Array.isArray(data.positions)
+          ? { positions: data.positions }
           : null);
       })
       .catch(() => { if (active) setPosition(null); })
@@ -50,11 +71,20 @@ export default function LiveMarketInfo({ asset, wallet }: { asset: string; walle
       <div><span>Liquidation LTV</span><strong>{(market.liquidationLtv * 100).toFixed(1)}%</strong></div>
     </div>
     {wallet && <div className="product-live-position" aria-live="polite">
-      <span className="product-kicker">YOUR KAMINO POSITION</span>
-      <strong>{positionLoading ? 'Checking wallet…' : position
-        ? position.obligationCount > 0 ? `${position.obligationCount} obligation ${position.obligationCount === 1 ? 'record' : 'records'}` : 'No obligation record in this market'
-        : 'Position data unavailable'}</strong>
-      <small>Read-only data for {wallet.slice(0, 5)}…{wallet.slice(-4)}. No wallet action is requested.</small>
+      <span className="product-kicker">YOUR POSITION · LIVE FROM KAMINO</span>
+      {positionLoading ? <strong>Checking wallet…</strong> : position
+        ? position.positions.length ? position.positions.map((item, index) => <div className="product-live-position__entry" key={index}>
+          <div className="product-live-position__stats">
+            <div><span>Deposited</span><strong>{money(item.totalDepositValue)}</strong></div>
+            <div><span>Borrowed</span><strong>{money(item.totalBorrowValue)}</strong></div>
+            <div><span>Net value</span><strong>{money(item.netValue)}</strong></div>
+            <div><span>Current LTV</span><strong>{item.ltv === null ? '—' : `${(item.ltv * 100).toFixed(1)}%`}</strong></div>
+          </div>
+          <PositionAssets title="COLLATERAL" items={item.deposits}/>
+          <PositionAssets title="BORROWED" items={item.borrows}/>
+        </div>) : <strong>No open position in this market</strong>
+        : <strong>Position data unavailable</strong>}
+      <small>Read-only for {wallet.slice(0, 5)}…{wallet.slice(-4)}. Prisma does not sign or send transactions.</small>
     </div>}
     <p className="product-disclaimer">The catalogue row and quote above are illustrative USDG previews. This USDC reserve is separate. Transactions are not enabled in Prisma.</p>
   </div>;
