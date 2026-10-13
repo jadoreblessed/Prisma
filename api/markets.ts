@@ -1,4 +1,4 @@
-import { markets, send } from './_shared';
+import { markets, send } from './_shared.ts';
 
 const sortable = new Set(['supplied','borrowed','supplyApy','borrowApy','loanLimit']);
 
