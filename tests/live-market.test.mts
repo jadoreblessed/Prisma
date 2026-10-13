@@ -8,6 +8,8 @@ const collateralReserve = new PublicKey(new Uint8Array(32).fill(17)).toBase58();
 const collateralMint = new PublicKey(new Uint8Array(32).fill(18)).toBase58();
 const borrowReserve = new PublicKey(new Uint8Array(32).fill(19)).toBase58();
 const usdc = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const usdg = '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH';
+const usdgReserve = new PublicKey(new Uint8Array(32).fill(21)).toBase58();
 const listing = { collateralReserves: [{ name: 'NVDAx Borrow Market', lendingMarket: market,
   lendingMarketName: 'xStocks Pool', debtTag: 'stables', slugs: ['nvdax-stables'], collateralReserve, collateralMint,
   borrowReserves: [borrowReserve], borrowReserveTerms: [{ reserve: borrowReserve,
@@ -51,5 +53,28 @@ test('a catalogue ticker without an explicit xStock mapping never reaches the up
   const original = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error('unexpected request'); };
   try { assert.equal(await resolveLiveMarket('CASHCAT'), null); }
+  finally { globalThis.fetch = original; }
+});
+
+test('CRCL can borrow the verified Solana USDG reserve, but not an unrelated token', async () => {
+  const original = globalThis.fetch;
+  const crcl = { ...listing.collateralReserves[0], name: 'CRCLx Borrow Market', slugs: ['crclx-stables'],
+    borrowReserves: [usdgReserve], borrowReserveTerms: [{ reserve: usdgReserve, maxLtv: '0.3', liquidationLtv: '0.4' }] };
+  const reserves = [{ ...metrics[0], liquidityToken: 'CRCLx' },
+    { ...metrics[1], reserve: usdgReserve, liquidityToken: 'USDG', liquidityTokenMint: usdg }];
+  globalThis.fetch = async (url: any) => new Response(JSON.stringify(String(url).includes('collateral-reserves') ? { collateralReserves: [crcl] } : reserves));
+  try {
+    assert.equal((await resolveLiveMarket('CRCL', 'USDG'))?.borrowMint, usdg);
+    assert.equal(await resolveLiveMarket('CRCL', 'USDC'), null);
+  } finally { globalThis.fetch = original; }
+});
+
+test('cbBTC requires its own collateral slug and exact mint', async () => {
+  const original = globalThis.fetch;
+  const bitcoin = { ...listing.collateralReserves[0], name: 'cbBTC Borrow Market',
+    slugs: ['cbbtc-stables-xstocks'] };
+  const reserves = [{ ...metrics[0], liquidityToken: 'cbBTC' }, metrics[1]];
+  globalThis.fetch = async (url: any) => new Response(JSON.stringify(String(url).includes('collateral-reserves') ? { collateralReserves: [bitcoin] } : reserves));
+  try { assert.equal((await resolveLiveMarket('cbBTC'))?.collateralSymbol, 'cbBTC'); }
   finally { globalThis.fetch = original; }
 });
