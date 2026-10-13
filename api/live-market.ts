@@ -94,6 +94,29 @@ function send(req: any, res: any, status: number, body: { available: boolean; ma
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return send(req, res, 405, { available: false, error: 'method_not_allowed' });
+  if (req.query?.inspect === '1' && String(req.headers?.accept || '').includes('text/html')) {
+    try {
+      const [listing, metrics] = await Promise.all([
+        kaminoJson('/markets/collateral-reserves'),
+        kaminoJson(`/kamino-market/${XSTOCKS_MARKET}/reserves/metrics`),
+      ]);
+      const rows = Array.isArray(listing) ? listing : listing?.collateralReserves;
+      const reserves = Array.isArray(metrics) ? metrics : metrics?.reserves;
+      const summary = {
+        listingKeys: Object.keys(listing || {}).slice(0, 12), listingCount: rows?.length,
+        sampleCollateral: rows?.find((row: any) => /nvdax?/i.test(row.name || row.symbol || '')) || rows?.[0],
+        metricsKeys: Object.keys(metrics || {}).slice(0, 12), metricsCount: reserves?.length,
+        sampleMetric: reserves?.find((row: any) => /nvdax?/i.test(row.liquidityToken || row.symbol || '')) || reserves?.[0],
+      };
+      const safe = JSON.stringify(summary, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.end(`<!doctype html><html><head><title>Market source shape</title></head><body><pre>${safe}</pre></body></html>`);
+    } catch (error) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      const safeMessage = String(error instanceof Error ? error.message : 'Unknown error').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+      return res.end(`<!doctype html><html><body><h1>Market source error</h1><p>${safeMessage}</p></body></html>`);
+    }
+  }
   try {
     const market = await resolveLiveMarket(String(req.query?.asset || ''));
     if (!market) return send(req, res, 200, { available: false });
