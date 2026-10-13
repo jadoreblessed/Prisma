@@ -1,7 +1,7 @@
 import { address, createNoopSigner, createSolanaRpc } from '@solana/kit';
 import { KaminoAction, KaminoMarket, VanillaObligation, getCurrentLedgerInstant } from '@kamino-finance/klend-sdk';
 import { Connection, PublicKey, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
-import { resolveLiveMarket, type BorrowAsset } from './_live-market';
+import { resolveLiveMarket, type BorrowAsset } from './live-market.ts';
 
 const GENESIS = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
 const PROGRAM = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';

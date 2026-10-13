@@ -1,5 +1,5 @@
 const API = 'https://api.kamino.finance';
-import { LIVE_ASSETS, resolveLiveMarket, type BorrowAsset } from './_live-market';
+import { LIVE_ASSETS, resolveLiveMarket, type BorrowAsset } from './live-market.ts';
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 type PortfolioAsset = { mint: string; symbol: string; amount: string; value: number | null; price: number | null };
