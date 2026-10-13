@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PublicKey } from '@solana/web3.js';
-import handler, { obligationCount } from '../api/live-position.ts';
+import handler, { positionsForMarket } from '../api/live-position.ts';
 
 const wallet = 'AcNSmd5CxwLs21TYUmhWt7CW2v159TdYRkvQxb1iBYRj';
 const market = '5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua';
@@ -13,7 +13,7 @@ const listing = { collateralReserves: [{ name: 'NVDAx Borrow Market', lendingMar
   borrowReserves: [borrowReserve], borrowReserveTerms: [{ reserve: borrowReserve, maxLtv: '0.60', liquidationLtv: '0.70' }] }] };
 const metrics = [
   { reserve: collateralReserve, liquidityToken: 'NVDAx', liquidityTokenMint: collateralMint },
-  { reserve: borrowReserve, liquidityToken: 'USDC', liquidityTokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', supplyApy: '0.04', borrowApy: '0.08' },
+  { reserve: borrowReserve, liquidityToken: 'USDC', liquidityTokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
 ];
 
 function mockResponse() {
@@ -23,12 +23,17 @@ function mockResponse() {
     read: () => JSON.parse(body) };
 }
 
-test('obligationCount accepts documented list response shapes only', () => {
-  assert.equal(obligationCount([]), 0);
-  assert.equal(obligationCount([{ address: 'x' }]), 1);
-  assert.equal(obligationCount({ obligations: [{ address: 'x' }] }), 1);
-  assert.equal(obligationCount({ data: [] }), 0);
-  assert.equal(obligationCount({ metadata: 'ok' }), null);
+test('portfolio parser returns only positions for the resolved market and sanitizes amounts', () => {
+  const result = positionsForMarket({ lending: [
+    { market, netValue: '980.5', totalDepositValue: '1000', totalBorrowValue: '19.5', ltv: '0.0195',
+      deposits: [{ mint: collateralMint, symbol: 'NVDAx', amount: '2', value: '1000', price: '500' }],
+      borrows: [{ mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '19.5', value: 19.5 }] },
+    { market: collateralReserve, netValue: '900', deposits: [], borrows: [] },
+  ] }, market);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].netValue, 980.5);
+  assert.deepEqual(result[0].deposits[0], { mint: collateralMint, symbol: 'NVDAx', amount: '2', value: 1000, price: 500 });
+  assert.equal(result[0].borrows[0].value, 19.5);
 });
 
 test('invalid public keys are rejected before any upstream request', async () => {
@@ -42,7 +47,7 @@ test('invalid public keys are rejected before any upstream request', async () =>
   } finally { globalThis.fetch = original; }
 });
 
-test('returns only the number of market obligation records, never their balances', async () => {
+test('position route resolves the market and requests the wallet portfolio read-only', async () => {
   const original = globalThis.fetch;
   const requested: string[] = [];
   globalThis.fetch = async (input: any) => {
@@ -50,7 +55,9 @@ test('returns only the number of market obligation records, never their balances
     requested.push(url);
     if (url.includes('collateral-reserves')) return new Response(JSON.stringify(listing));
     if (url.includes('/reserves/metrics')) return new Response(JSON.stringify(metrics));
-    return new Response(JSON.stringify([{ deposits: [{ amount: '999' }], borrows: [] }]));
+    return new Response(JSON.stringify({ lending: [{ market, netValue: 980, totalDepositValue: 1000, totalBorrowValue: 20,
+      ltv: 0.02, deposits: [{ mint: collateralMint, symbol: 'NVDAx', amount: '2', value: 1000 }],
+      borrows: [{ mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '20', value: 20 }] }] }));
   };
   const result = mockResponse();
   try {
@@ -58,8 +65,8 @@ test('returns only the number of market obligation records, never their balances
     const body = result.read();
     assert.equal(result.res.statusCode, 200);
     assert.equal(body.available, true);
-    assert.equal(body.obligationCount, 1);
-    assert.equal('deposits' in body, false);
-    assert.match(requested[2], new RegExp(`/users/${wallet}/obligations\\?env=mainnet-beta$`));
+    assert.equal(body.positions.length, 1);
+    assert.equal(body.positions[0].totalDepositValue, 1000);
+    assert.match(requested[2], new RegExp(`/portfolio/${wallet}\\?env=mainnet-beta$`));
   } finally { globalThis.fetch = original; }
 });
