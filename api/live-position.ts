@@ -1,4 +1,4 @@
-import { resolveLiveMarket } from './live-market.ts';
+import { resolveLiveMarket } from './_live-market.ts';
 
 const API = 'https://api.kamino.finance';
 const EQUITIES = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR']);
