@@ -54,15 +54,20 @@ function cleanAssets(value: unknown): PortfolioAsset[] {
 
 // Kamino's public portfolio includes lending positions across markets. Expose
 // only the selected Prisma market and a small, validated subset of its fields.
-export function positionsForMarket(payload: unknown, market: string): PortfolioPosition[] {
-  if (!payload || typeof payload !== 'object' || !validAddress(market)) return [];
+export function positionsForMarket(payload: unknown, market: string, collateralMint: string, borrowMint: string): PortfolioPosition[] {
+  if (!payload || typeof payload !== 'object' || !validAddress(market) ||
+      !validAddress(collateralMint) || !validAddress(borrowMint)) return [];
   const portfolio = payload as Record<string, any>;
   const rows = Array.isArray(portfolio.lending) ? portfolio.lending
     : Array.isArray(portfolio.positions?.lending) ? portfolio.positions.lending : [];
   return rows.flatMap((row: any) => {
     if (!row || row.market !== market) return [];
-    const deposits = cleanAssets(row.deposits);
-    const borrows = cleanAssets(row.borrows);
+    const deposits = cleanAssets(row.deposits).filter(asset => asset.mint === collateralMint);
+    // Only show a debt row when the selected xStock is actually posted as collateral.
+    // Kamino markets can contain multiple reserves, so matching the market address
+    // alone can otherwise attribute another asset's USDC debt to this selection.
+    if (!deposits.length) return [];
+    const borrows = cleanAssets(row.borrows).filter(asset => asset.mint === borrowMint);
     return [{
       netValue: numberOrNull(row.netValue), totalDepositValue: numberOrNull(row.totalDepositValue),
       totalBorrowValue: numberOrNull(row.totalBorrowValue), ltv: numberOrNull(row.ltv),
@@ -121,7 +126,7 @@ export default async function handler(req: any, res: any) {
     const market = await resolveLiveMarket(asset);
     if (!market) return send(res, 200, { available: false, positions: [] });
     const payload = await kaminoJson(`/portfolio/${encodeURIComponent(wallet)}?env=mainnet-beta`);
-    const positions = positionsForMarket(payload, market.market);
+    const positions = positionsForMarket(payload, market.market, market.collateralMint, USDC_MINT);
     return send(res, 200, { available: true, market: market.market, positions, checkedAt: new Date().toISOString() });
   } catch {
     return send(res, 503, { available: false, error: 'live_position_unavailable' });
