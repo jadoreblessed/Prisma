@@ -6,4 +6,6 @@ export type PhantomProvider = {
   connect: () => Promise<{ publicKey: PublicKey }>;
   disconnect?: () => Promise<void>;
   signAndSendTransaction?: (transaction: VersionedTransaction) => Promise<{ signature: string }>;
+  on?: (event: 'accountChanged' | 'disconnect', listener: (key?: PublicKey | null) => void) => void;
+  off?: (event: 'accountChanged' | 'disconnect', listener: (key?: PublicKey | null) => void) => void;
 };
