@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, Search, X, Info, ChevronDown } from 'lucide-re
 import { markets as marketData, equityAssets, otherAssets, tokenLogo } from './marketData';
 import GlassButton from './GlassButton';
 import PrismaMark from './PrismaMark';
+import LiveMarketInfo from './LiveMarketInfo';
 import type { PhantomProvider } from './protocolClient';
 import './Product.css';
 
@@ -20,7 +21,7 @@ function Pair({name,value}:{name:string;value:string}){return <div className="pr
 const questions=[
  ['What is an isolated market?','Each market defines its collateral asset, borrow asset, price feed and liquidation limit. Its risk is considered separately from other markets.'],
  ['What does price age mean?','It shows how long ago the underlying oracle price last moved. Equity feeds may pause when their exchanges close.'],
- ['Can I supply or borrow now?','You can connect a browser wallet and calculate a market quote. Execution becomes available after the network contracts and oracle are published.'],
+ ['Can I supply or borrow now?','You can connect a wallet and inspect market previews. Prisma currently displays verified xStock / USDC reserve data for some assets, but it does not submit onchain transactions.'],
  ['How do vaults work?','A curator can allocate a deposit across approved isolated markets, subject to each market cap. The Prisma vault interface is in preview.'],
  ['What happens if a price is old?','The age is shown beside the market and position. An older price deserves extra attention when assessing liquidation risk.']
 ];
@@ -49,6 +50,7 @@ export default function Product({route}:{route:string}){
       <div className="product-position-grid"><div><h3>Lend {selected[1]}</h3><Pair name="You supplied" value="—"/><Pair name="In your wallet" value="—"/><Pair name="Earning" value={selected[4].toFixed(2)+'%'}/><label>AMOUNT<input inputMode="decimal" value={amount} onChange={e=>{setAmount(e.target.value);setQuote(null)}} placeholder="0.00"/></label><button disabled={quoteLoading||Number(amount)<=0} onClick={()=>requestQuote('lend')}>{quoteLoading?'Calculating…':'Preview supply'}</button></div>
       <div><h3>Borrow against {selected[0]}</h3><Pair name="Collateral posted" value="—"/><Pair name="You owe" value="—"/><Pair name="Liquidated above" value={selected[8].toFixed(1)+'%'}/><label>COLLATERAL<input inputMode="decimal" value={amount} onChange={e=>{setAmount(e.target.value);setQuote(null)}} placeholder="0.00"/></label><button disabled={quoteLoading||Number(amount)<=0} onClick={()=>requestQuote('borrow')}>{quoteLoading?'Calculating…':'Preview borrow'}</button></div></div>
       {quote&&<div className="product-quote-result"><span>ILLUSTRATIVE PREVIEW</span><strong>{quote.action==='lend'?`${quote.estimatedAnnualInterest} ${quote.asset} estimated per year`: `Up to ${quote.maximumBorrow} ${quote.borrowAsset}; ${quote.saferBorrow} at an 80% buffer`}</strong><p>Calculated from the demonstration snapshot. This is not an executable quote.</p></div>}
+      {['NVDA','AAPL','GOOGL','TSLA','SPY','QQQ','MSTR'].includes(selected[0])&&<LiveMarketInfo asset={selected[0]}/>}
     </div></div>}
     {notice&&<div className="product-modal-backdrop" onClick={()=>setNotice(false)}><div className="product-notice" role="dialog" aria-modal="true" aria-label="Preview notice" onClick={e=>e.stopPropagation()}><button className="product-modal-close" onClick={()=>setNotice(false)} aria-label="Close"><X size={20}/></button><span className="product-kicker">INTERFACE PREVIEW</span><h2>{walletError||'This section is a preview.'}</h2><p>{walletError?'No account or transaction was changed.':'Wallet connection and illustrative quote previews are available. Onchain transactions are not enabled yet.'}</p><GlassButton onClick={()=>setNotice(false)}>Got it</GlassButton></div></div>}
     <footer className="product-footer"><span>PRISMA / INTERFACE PREVIEW</span><a href="#/">BACK TO SITE <ArrowUpRight size={14}/></a></footer>
