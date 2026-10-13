@@ -1,5 +1,3 @@
-import { PublicKey } from '@solana/web3.js';
-
 const API = 'https://api.kamino.finance';
 const XSTOCKS_MARKET = 'CF32kn7AY8X1bW7ZkGcHc4X9ZWTxqKGCJk6QwrQkDcdw';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -24,8 +22,21 @@ export type LiveMarket = {
 };
 
 function validAddress(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  try { return new PublicKey(value).toBase58() === value; } catch { return false; }
+  if (typeof value !== 'string' || value.length < 32 || value.length > 44) return false;
+  const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const bytes = [0];
+  for (const char of value) {
+    let carry = alphabet.indexOf(char);
+    if (carry < 0) return false;
+    for (let i = 0; i < bytes.length; i++) {
+      carry += bytes[i] * 58;
+      bytes[i] = carry & 255;
+      carry >>= 8;
+    }
+    while (carry > 0) { bytes.push(carry & 255); carry >>= 8; }
+  }
+  const leadingZeroes = value.match(/^1*/)?.[0].length || 0;
+  return (bytes.length === 1 && bytes[0] === 0 ? 0 : bytes.length) + leadingZeroes === 32;
 }
 
 async function kaminoJson(path: string): Promise<any> {
