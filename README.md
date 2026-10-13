@@ -29,7 +29,7 @@ The read-only preflight builds an instruction with Kamino's SDK, checks the onch
 
 ```bash
 PRISMA_MAINNET_RPC=https://YOUR_MAINNET_RPC \
-  protocol/node_modules/.bin/tsx scripts/check-kamino-action.ts NVDA supply 1 WALLET_PUBLIC_KEY
+  npx tsx scripts/check-kamino-action.ts NVDA supply 1 WALLET_PUBLIC_KEY
 ```
 
 Use `collateral` for an xStock deposit and `borrow` for a USDC borrowing preflight. An unfunded address will fail simulation because it cannot pay the transaction fee. The frontend remains read-only; these checks do not enable Supply or Borrow for users.
