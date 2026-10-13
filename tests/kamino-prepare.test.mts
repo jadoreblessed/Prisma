@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import handler, { units } from '../api/kamino-prepare.ts';
+import statusHandler from '../api/transaction-status.ts';
 
 test('preparation preserves smallest token units and rejects rounding', () => {
   assert.equal(units('0.000001', 6), '1');
@@ -17,7 +18,9 @@ test('transaction endpoint rejects missing action and GET before network calls',
   } };
   await handler({ method: 'GET' }, response);
   await handler({ method: 'POST', body: { action: 'transfer', asset: 'NVDA', amount: '1', wallet: 'x' } }, response);
+  await handler({ method: 'POST', body: { action: 'supply', asset: 'NVDA', amount: '1', wallet: 'x' } }, response);
+  await statusHandler({ method: 'GET', query: { signature: 'x' } }, response);
   assert.deepEqual(responses.map(item => [item.status, item.body.error]), [
-    [405, 'method_not_allowed'], [400, 'invalid_request'],
+    [405, 'method_not_allowed'], [400, 'invalid_request'], [400, 'invalid_wallet'], [400, 'invalid_signature'],
   ]);
 });
