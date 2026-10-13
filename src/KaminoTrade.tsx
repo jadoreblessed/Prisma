@@ -4,15 +4,15 @@ import type { PhantomProvider } from './protocolClient';
 
 const KLEND = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
 type Action = 'supply' | 'collateral' | 'borrow' | 'withdraw' | 'removeCollateral' | 'repay';
-type Market = { market: string; collateralMint: string; collateralReserve: string; borrowMint: string; borrowReserve: string; collateralSymbol: string; maxLtv: number; liquidationLtv: number };
-type Prepared = { action: Action; asset: string; amount: string; token: string; market: string; reserve: string; mint: string;
+type Market = { market: string; collateralMint: string; collateralReserve: string; borrowMint: string; borrowReserve: string; collateralSymbol: string; borrowSymbol: 'USDC' | 'USDG'; maxLtv: number; liquidationLtv: number };
+type Prepared = { action: Action; asset: string; borrowAsset: string; amount: string; token: string; market: string; reserve: string; mint: string;
   transaction: string; blockhash: string; lastValidBlockHeight: number; feeLamports: number | null; computeUnits: number | null; checkedAt: number };
 
 const messages: Record<string, string> = {
   collateral_required: 'Deposit this xStock as collateral before borrowing.',
   position_required: 'There is no position in this market for this wallet.',
   deposit_required: 'No matching deposit is available to withdraw.',
-  debt_required: 'No USDC debt is available to repay.',
+  debt_required: 'No debt in this asset is available to repay.',
   insufficient_token_balance: 'Not enough of this token in your wallet.',
   invalid_wallet: 'Reconnect Phantom and try again.',
   market_unavailable: 'This live market is unavailable right now.',
@@ -59,14 +59,14 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
     setBusy(true); setError(''); setPrepared(null); setSignature('');
     try {
       const response = await fetch('/api/kamino-prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asset, action, amount, wallet }) });
+        body: JSON.stringify({ asset, borrowAsset: market.borrowSymbol, action, amount, wallet }) });
       const data = await response.json();
       if (!response.ok) throw new Error(messages[data.error] || messages.preflight_failed);
       const result = data as Prepared;
       const expectedReserve = action === 'collateral' || action === 'removeCollateral' ? market.collateralReserve : market.borrowReserve;
       const expectedMint = action === 'collateral' || action === 'removeCollateral' ? market.collateralMint : market.borrowMint;
       if (result.market !== market.market || result.reserve !== expectedReserve || result.mint !== expectedMint ||
-          result.asset !== asset || result.action !== action || result.amount !== amount) throw new Error('Market changed during preparation. Please retry.');
+          result.asset !== asset || result.borrowAsset !== market.borrowSymbol || result.action !== action || result.amount !== amount) throw new Error('Market changed during preparation. Please retry.');
       const transaction = decode(result.transaction);
       if (transaction.message.header.numRequiredSignatures !== 1 ||
           !transaction.message.staticAccountKeys[0].equals(new PublicKey(wallet)) ||
@@ -102,16 +102,16 @@ export default function KaminoTrade({ asset, market, wallet, onConnect, onComple
   return <section className="product-trade" aria-label="Live lending actions">
     <h4>ACT ON THIS MARKET</h4>
     <div className="product-trade__tabs" role="group" aria-label="Action">
-      {([['supply', 'Supply USDC'], ['collateral', `Add ${market.collateralSymbol}`], ['borrow', 'Borrow USDC'],
-        ['withdraw', 'Withdraw USDC'], ['removeCollateral', `Remove ${market.collateralSymbol}`], ['repay', 'Repay USDC']] as const).map(([key, label]) =>
+      {([['supply', `Supply ${market.borrowSymbol}`], ['collateral', `Add ${market.collateralSymbol}`], ['borrow', `Borrow ${market.borrowSymbol}`],
+        ['withdraw', `Withdraw ${market.borrowSymbol}`], ['removeCollateral', `Remove ${market.collateralSymbol}`], ['repay', `Repay ${market.borrowSymbol}`]] as const).map(([key, label]) =>
         <button type="button" key={key} className={action === key ? 'active' : ''} onClick={() => { revision.current++; setAction(key); setPrepared(null); setError(''); }}>{label}</button>)}
     </div>
-    <p>{action === 'borrow' ? `Borrow USDC against ${market.collateralSymbol} already deposited in this Kamino market.` :
-      action === 'collateral' ? `Deposit ${market.collateralSymbol} as collateral before borrowing USDC.` :
+    <p>{action === 'borrow' ? `Borrow ${market.borrowSymbol} against ${market.collateralSymbol} already deposited in this Kamino market.` :
+      action === 'collateral' ? `Deposit ${market.collateralSymbol} as collateral before borrowing ${market.borrowSymbol}.` :
       action === 'removeCollateral' ? `Remove ${market.collateralSymbol} collateral, subject to your remaining loan limit.` :
-      action === 'repay' ? 'Repay USDC debt in this market.' : action === 'withdraw' ? 'Withdraw previously supplied USDC.' :
-      'Supply USDC to the verified Kamino reserve.'}</p>
-    <label className="product-trade__amount">AMOUNT · {action === 'collateral' || action === 'removeCollateral' ? market.collateralSymbol : 'USDC'}
+      action === 'repay' ? `Repay ${market.borrowSymbol} debt in this market.` : action === 'withdraw' ? `Withdraw previously supplied ${market.borrowSymbol}.` :
+      `Supply ${market.borrowSymbol} to the verified Kamino reserve.`}</p>
+    <label className="product-trade__amount">AMOUNT · {action === 'collateral' || action === 'removeCollateral' ? market.collateralSymbol : market.borrowSymbol}
       <input inputMode="decimal" autoComplete="off" value={amount} placeholder="0.00" onChange={event => { revision.current++; setAmount(event.target.value); setPrepared(null); setError(''); }}/>
     </label>
     {!wallet ? <button type="button" onClick={onConnect}>Connect Phantom</button> :

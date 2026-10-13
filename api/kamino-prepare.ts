@@ -1,7 +1,7 @@
 import { address, createNoopSigner, createSolanaRpc } from '@solana/kit';
 import { KaminoAction, KaminoMarket, VanillaObligation, getCurrentLedgerInstant } from '@kamino-finance/klend-sdk';
 import { Connection, PublicKey, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
-import { resolveLiveMarket } from './live-market';
+import { resolveLiveMarket, type BorrowAsset } from './_live-market';
 
 const GENESIS = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
 const PROGRAM = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
@@ -18,7 +18,7 @@ export function units(value: string, decimals: number): string {
   return amount.toString();
 }
 
-export async function prepareKamino(asset: string, action: Action, value: string, wallet: string) {
+export async function prepareKamino(asset: string, action: Action, value: string, wallet: string, borrowAsset: BorrowAsset = 'USDC') {
   let owner: PublicKey;
   try {
     owner = new PublicKey(wallet);
@@ -26,7 +26,7 @@ export async function prepareKamino(asset: string, action: Action, value: string
   } catch {
     throw new Error('invalid_wallet');
   }
-  const live = await resolveLiveMarket(asset);
+  const live = await resolveLiveMarket(asset, borrowAsset);
   if (!live) throw new Error('market_unavailable');
   const rpc = createSolanaRpc(RPC);
   if (await rpc.getGenesisHash().send() !== GENESIS) throw new Error('non_mainnet_rpc');
@@ -88,7 +88,8 @@ export async function prepareKamino(asset: string, action: Action, value: string
   if (simulation.value.err) throw new Error('simulation_failed: ' + JSON.stringify(simulation.value.err));
   const fee = await connection.getFeeForMessage(message, 'confirmed');
   return {
-    action, asset, amount: value, token: action === 'collateral' || action === 'removeCollateral' ? live.collateralSymbol : 'USDC',
+    action, asset, amount: value, token: action === 'collateral' || action === 'removeCollateral' ? live.collateralSymbol : live.borrowSymbol,
+    borrowAsset: live.borrowSymbol,
     market: live.market, reserve: reserve.address, mint: reserve.getLiquidityMint(),
     transaction: Buffer.from(transaction.serialize()).toString('base64'),
     blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight,
@@ -109,9 +110,10 @@ export default async function handler(req: any, res: any) {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { return send(res, 400, { error: 'invalid_body' }); } }
   if (!body || !ACTIONS.includes(body.action) || typeof body.asset !== 'string' ||
-      typeof body.amount !== 'string' || typeof body.wallet !== 'string' || body.amount.length > 40) return send(res, 400, { error: 'invalid_request' });
+      typeof body.amount !== 'string' || typeof body.wallet !== 'string' || body.amount.length > 40 ||
+      (body.borrowAsset !== undefined && body.borrowAsset !== 'USDC' && body.borrowAsset !== 'USDG')) return send(res, 400, { error: 'invalid_request' });
   try {
-    return send(res, 200, await prepareKamino(body.asset, body.action, body.amount, body.wallet));
+    return send(res, 200, await prepareKamino(body.asset, body.action, body.amount, body.wallet, body.borrowAsset || 'USDC'));
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'preflight_failed';
     const known = /^(invalid_wallet|invalid_amount|too_many_decimals|market_unavailable|non_mainnet_rpc|reserve_mismatch|insufficient_token_balance|collateral_required|position_required|deposit_required|debt_required|empty_action|lookup_table_unavailable|transaction_too_large|unexpected_signer)/.test(reason);

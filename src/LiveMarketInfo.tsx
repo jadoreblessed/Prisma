@@ -3,7 +3,7 @@ import KaminoTrade from './KaminoTrade';
 
 type LiveMarket = {
   market: string; collateralMint: string; collateralReserve: string; borrowMint: string; borrowReserve: string;
-  collateralSymbol: string; borrowSymbol: string;
+  collateralSymbol: string; borrowSymbol: 'USDC' | 'USDG';
   supplyApy: number; borrowApy: number;
   maxLtv: number; liquidationLtv: number; updatedAt: string;
 };
@@ -33,6 +33,7 @@ function PositionAssets({ title, items }: { title: string; items: PositionAsset[
 }
 
 export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: string; wallet?: string; onConnect: () => Promise<void> }) {
+  const [borrowAsset, setBorrowAsset] = useState<'USDC' | 'USDG'>('USDG');
   const [market, setMarket] = useState<LiveMarket | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [position, setPosition] = useState<LivePosition | null>(null);
@@ -42,19 +43,19 @@ export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: st
     let active = true;
     setMarket(null);
     setMarketLoading(true);
-    fetch('/api/live-market?asset=' + encodeURIComponent(asset), { cache: 'no-store' })
+    fetch('/api/live-market?' + new URLSearchParams({ asset, borrowAsset }), { cache: 'no-store' })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (active) setMarket(data?.available ? data.market : null); })
       .catch(() => { if (active) setMarket(null); })
       .finally(() => { if (active) setMarketLoading(false); });
     return () => { active = false; };
-  }, [asset]);
+  }, [asset, borrowAsset]);
   useEffect(() => {
     let active = true;
     setPosition(null);
     if (!wallet) { setPositionLoading(false); return () => { active = false; }; }
     setPositionLoading(true);
-    const params = new URLSearchParams({ asset, wallet });
+    const params = new URLSearchParams({ asset, borrowAsset, wallet });
     fetch('/api/live-position?' + params.toString(), { cache: 'no-store' })
       .then(response => response.ok ? response.json() : null)
       .then(data => {
@@ -66,13 +67,17 @@ export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: st
       .catch(() => { if (active) setPosition(null); })
       .finally(() => { if (active) setPositionLoading(false); });
     return () => { active = false; };
-  }, [asset, wallet, refresh]);
-  if (!market) return <div className="product-live-info" role="status">
+  }, [asset, borrowAsset, wallet, refresh]);
+  const selector = <div className="market-tabs" role="group" aria-label="Borrow asset">{(['USDG', 'USDC'] as const).map(symbol =>
+    <button type="button" key={symbol} className={borrowAsset === symbol ? 'active' : ''} onClick={() => setBorrowAsset(symbol)}>{symbol}</button>)}</div>;
+  if (!market || market.borrowSymbol !== borrowAsset) return <div className="product-live-info" role="status">
+    {selector}
     <span className="product-kicker">VERIFIED MARKET · SOLANA</span>
-    <p>{marketLoading ? 'Checking this xStock / USDC reserve…' : 'Verified reserve data is unavailable right now.'}</p>
+    <p>{marketLoading ? `Checking this ${borrowAsset} reserve…` : 'Verified reserve data is unavailable right now.'}</p>
     <p className="product-disclaimer">If the reserve cannot be verified, Prisma will not display lending terms for it.</p>
   </div>;
   return <div className="product-live-info">
+    {selector}
     <span className="product-kicker">LIVE RESERVE DATA · SOLANA</span>
     <h3>{market.collateralSymbol} / {market.borrowSymbol}</h3>
     <div className="product-live-info__stats">
@@ -81,26 +86,26 @@ export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: st
       <div><span>Max LTV</span><strong>{(market.maxLtv * 100).toFixed(1)}%</strong></div>
       <div><span>Liquidation LTV</span><strong>{(market.liquidationLtv * 100).toFixed(1)}%</strong></div>
     </div>
-    <KaminoTrade asset={asset} market={market} wallet={wallet} onConnect={onConnect} onComplete={() => setRefresh(value => value + 1)}/>
+    <KaminoTrade key={`${asset}-${borrowAsset}`} asset={asset} market={market} wallet={wallet} onConnect={onConnect} onComplete={() => setRefresh(value => value + 1)}/>
     {wallet && <div className="product-live-position" aria-live="polite">
-      <span className="product-kicker">YOUR {asset}x COLLATERAL POSITION · LIVE FROM KAMINO</span>
+      <span className="product-kicker">YOUR {market.collateralSymbol} COLLATERAL POSITION · LIVE FROM KAMINO</span>
       {positionLoading ? <strong>Checking wallet…</strong> : position
         ? <>
-          <PositionAssets title="YOUR USDC SUPPLY IN THIS MARKET" items={position.supplies}/>
+          <PositionAssets title={`YOUR ${borrowAsset} SUPPLY IN THIS MARKET`} items={position.supplies}/>
           {position.positions.length ? position.positions.map((item, index) => <div className="product-live-position__entry" key={index}>
           <div className="product-live-position__stats">
-            <div><span>Deposited</span><strong>{money(item.totalDepositValue)}</strong></div>
-            <div><span>Borrowed</span><strong>{money(item.totalBorrowValue)}</strong></div>
-            <div><span>Net value</span><strong>{money(item.netValue)}</strong></div>
-            <div><span>Current LTV</span><strong>{item.ltv === null ? '—' : `${(item.ltv * 100).toFixed(1)}%`}</strong></div>
+            <div><span>Pool deposited</span><strong>{money(item.totalDepositValue)}</strong></div>
+            <div><span>Pool borrowed</span><strong>{money(item.totalBorrowValue)}</strong></div>
+            <div><span>Pool net value</span><strong>{money(item.netValue)}</strong></div>
+            <div><span>Pool LTV</span><strong>{item.ltv === null ? '—' : `${(item.ltv * 100).toFixed(1)}%`}</strong></div>
           </div>
           <PositionAssets title="COLLATERAL" items={item.deposits}/>
           <PositionAssets title="BORROWED" items={item.borrows}/>
         </div>) : !position.supplies.length && <strong>No open position in this market</strong>}
           </>
         : <strong>Position data unavailable</strong>}
-      <small>USDC supply is shared across this Kamino market; collateral rows show only {asset}x. Wallet {wallet.slice(0, 5)}…{wallet.slice(-4)}.</small>
+      <small>Pool totals and LTV include other assets in this Kamino obligation. Below, collateral shows only {market.collateralSymbol} and debt only {borrowAsset}. Wallet {wallet.slice(0, 5)}…{wallet.slice(-4)}.</small>
     </div>}
-    <p className="product-disclaimer">Terms are from the verified USDC reserve. Price age is unavailable until the lending oracle timestamp can be verified.</p>
+    <p className="product-disclaimer">Terms are from the verified Solana {borrowAsset} reserve. Price age is unavailable until the lending oracle timestamp can be verified.</p>
   </div>;
 }

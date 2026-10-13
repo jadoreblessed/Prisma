@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PublicKey } from '@solana/web3.js';
-import handler, { positionsForMarket, suppliedUsdcForMarket } from '../api/live-position.ts';
+import handler, { positionsForMarket, suppliedForMarket, suppliedUsdcForMarket } from '../api/live-position.ts';
 
 const wallet = 'AcNSmd5CxwLs21TYUmhWt7CW2v159TdYRkvQxb1iBYRj';
 const market = '5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua';
@@ -13,7 +13,7 @@ const listing = { collateralReserves: [{ name: 'NVDAx Borrow Market', lendingMar
   borrowReserves: [borrowReserve], borrowReserveTerms: [{ reserve: borrowReserve, maxLtv: '0.60', liquidationLtv: '0.70' }] }] };
 const metrics = [
   { reserve: collateralReserve, liquidityToken: 'NVDAx', liquidityTokenMint: collateralMint },
-  { reserve: borrowReserve, liquidityToken: 'USDC', liquidityTokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+  { reserve: borrowReserve, liquidityToken: 'USDC', liquidityTokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', supplyApy: '0.04', borrowApy: '0.08' },
 ];
 
 function mockResponse() {
@@ -60,6 +60,17 @@ test('USDC-only supply is visible without attributing it to a particular xStock'
   ] };
   assert.equal(positionsForMarket(portfolio, market, collateralMint, mint).length, 0);
   assert.deepEqual(suppliedUsdcForMarket(portfolio, market).map(row => row.amount), ['5']);
+});
+
+test('USDG supply and debt use only the verified Solana mint', () => {
+  const usdg = '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH';
+  const payload = { lending: [{ market, deposits: [
+    { mint: collateralMint, symbol: 'NVDAx', amount: '1' },
+    { mint: usdg, symbol: 'USDG', amount: '50' }],
+    borrows: [{ mint: usdg, symbol: 'USDG', amount: '10' }] }] };
+  assert.equal(suppliedForMarket(payload, market, usdg)[0].amount, '50');
+  assert.equal(positionsForMarket(payload, market, collateralMint, usdg)[0].borrows[0].amount, '10');
+  assert.equal(suppliedUsdcForMarket(payload, market).length, 0);
 });
 
 test('position route resolves the market and requests the wallet portfolio read-only', async () => {
