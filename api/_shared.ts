@@ -1,4 +1,4 @@
-import { markets as catalogue } from '../src/marketData';
+import { markets as catalogue } from '../src/marketData.ts';
 
 export type ApiMarket = {
   id: string;
