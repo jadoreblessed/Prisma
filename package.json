@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/patch-orca-wasm.cjs",
+    "prebuild": "node scripts/patch-orca-wasm.cjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"

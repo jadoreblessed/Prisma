@@ -65,6 +65,7 @@ export function units(value: string, decimals: number): string {
 }
 
 export async function prepareKamino(asset: string, action: Action, value: string, wallet: string, borrowAsset: BorrowAsset = 'USDC') {
+  if (!validAddress(wallet)) throw new Error('invalid_wallet');
   const [{ address, createNoopSigner, createSolanaRpc },
     { KaminoAction, KaminoMarket, VanillaObligation, getCurrentLedgerInstant },
     { Connection, PublicKey, TransactionInstruction, TransactionMessage, VersionedTransaction }] = await Promise.all([
