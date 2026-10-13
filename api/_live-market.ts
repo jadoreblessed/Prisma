@@ -1,11 +1,11 @@
 const API = 'https://api.kamino.finance';
-const XSTOCKS_MARKET = 'CF32kn7AY8X1bW7ZkGcHc4X9ZWTxqKGCJk6QwrQkDcdw';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const EQUITIES = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR']);
 
 type CollateralRow = {
   name?: string; lendingMarket?: string; lendingMarketName?: string;
   collateralReserve?: string; collateralMint?: string; borrowReserves?: string[];
+  debtTag?: string; slugs?: string[];
   borrowReserveTerms?: { reserve: string; maxLtv: string; liquidationLtv: string }[];
 };
 type ReserveMetric = {
@@ -49,22 +49,25 @@ async function kaminoJson(path: string): Promise<any> {
 // Never infer an onchain reserve merely from a ticker in that catalogue.
 export async function resolveLiveMarket(asset: string): Promise<LiveMarket | null> {
   if (!EQUITIES.has(asset)) return null;
-  const [listing, metrics] = await Promise.all([
-    kaminoJson('/markets/collateral-reserves'),
-    kaminoJson(`/kamino-market/${XSTOCKS_MARKET}/reserves/metrics`),
-  ]);
+  const listing = await kaminoJson('/markets/collateral-reserves');
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
-  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
   const symbol = asset + 'x';
-  const collateral = rows.find(row => row.lendingMarket === XSTOCKS_MARKET &&
-    /xstocks/i.test(row.lendingMarketName || '') &&
-    reserves.some(metric => metric.reserve === row.collateralReserve &&
-      metric.liquidityTokenMint === row.collateralMint && metric.liquidityToken === symbol));
-  if (!collateral || !validAddress(collateral.collateralReserve) || !validAddress(collateral.collateralMint)) return null;
+  const slug = `${symbol.toLowerCase()}-stables`;
+  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
+    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
+    validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
+  const market = candidates[0]?.lendingMarket;
+  if (!market) return null;
+  const metrics = await kaminoJson(`/kamino-market/${market}/reserves/metrics`);
+  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
+  const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT && row.liquidityToken === 'USDC');
+  const collateral = candidates.find(row => row.lendingMarket === market &&
+    row.borrowReserves?.includes(debt?.reserve || '') &&
+    row.borrowReserveTerms?.some(term => term.reserve === debt?.reserve));
+  if (!collateral || !validAddress(collateral.lendingMarket) ||
+      !validAddress(collateral.collateralReserve) || !validAddress(collateral.collateralMint)) return null;
   const backing = reserves.find(row => row.reserve === collateral.collateralReserve &&
     row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol);
-  const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT &&
-    row.liquidityToken === 'USDC' && collateral.borrowReserves?.includes(row.reserve));
   const terms = collateral.borrowReserveTerms?.find(row => row.reserve === debt?.reserve);
   if (!backing || !debt || !terms || !validAddress(debt.reserve)) return null;
   const maxLtv = Number(terms.maxLtv), liquidationLtv = Number(terms.liquidationLtv);
@@ -74,7 +77,7 @@ export async function resolveLiveMarket(asset: string): Promise<LiveMarket | nul
       supplyApy < 0 || borrowApy < 0) return null;
   return {
     asset,
-    market: XSTOCKS_MARKET, collateralReserve: collateral.collateralReserve,
+    market: collateral.lendingMarket, collateralReserve: collateral.collateralReserve,
     collateralMint: collateral.collateralMint, borrowReserve: debt.reserve,
     borrowMint: USDC_MINT, collateralSymbol: symbol, borrowSymbol: 'USDC',
     supplyApy, borrowApy, maxLtv, liquidationLtv, updatedAt: new Date().toISOString(),
