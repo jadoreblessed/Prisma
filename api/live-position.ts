@@ -1,6 +1,7 @@
 const API = 'https://api.kamino.finance';
 const EQUITIES = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR']);
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 type CollateralRow = {
   name?: string; lendingMarket?: string; lendingMarketName?: string;
@@ -8,11 +9,14 @@ type CollateralRow = {
   debtTag?: string; slugs?: string[];
   borrowReserveTerms?: { reserve: string; maxLtv: string; liquidationLtv: string }[];
 };
-type ReserveMetric = {
-  reserve: string; liquidityToken: string; liquidityTokenMint: string;
-  supplyApy: string; borrowApy: string;
+type ReserveMetric = { reserve: string; liquidityToken: string; liquidityTokenMint: string };
+type ResolvedMarket = { market: string; collateralReserve: string; collateralMint: string; borrowReserve: string };
+type PortfolioAsset = { mint: string; symbol: string; amount: string; value: number | null; price: number | null };
+type PortfolioPosition = {
+  netValue: number | null; totalDepositValue: number | null; totalBorrowValue: number | null;
+  ltv: number | null; maxLtv: number | null; liquidationLtv: number | null;
+  deposits: PortfolioAsset[]; borrows: PortfolioAsset[];
 };
-type LiveMarket = { market: string };
 
 function validAddress(value: unknown): value is string {
   if (typeof value !== 'string' || value.length < 32 || value.length > 44) return false;
@@ -31,15 +35,49 @@ function validAddress(value: unknown): value is string {
   return (bytes.length === 1 && bytes[0] === 0 ? 0 : bytes.length) + leadingZeroes === 32;
 }
 
+function numberOrNull(value: unknown): number | null {
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  if (String(value).trim() === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function cleanAssets(value: unknown): PortfolioAsset[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item: any) => {
+    if (!item || typeof item !== 'object' || !validAddress(item.mint) ||
+        typeof item.symbol !== 'string' || typeof item.amount !== 'string') return [];
+    return [{ mint: item.mint, symbol: item.symbol.slice(0, 16), amount: item.amount.slice(0, 48),
+      value: numberOrNull(item.value), price: numberOrNull(item.price) }];
+  });
+}
+
+// Kamino's public portfolio includes lending positions across markets. Expose
+// only the selected Prisma market and a small, validated subset of its fields.
+export function positionsForMarket(payload: unknown, market: string): PortfolioPosition[] {
+  if (!payload || typeof payload !== 'object' || !validAddress(market)) return [];
+  const portfolio = payload as Record<string, any>;
+  const rows = Array.isArray(portfolio.lending) ? portfolio.lending
+    : Array.isArray(portfolio.positions?.lending) ? portfolio.positions.lending : [];
+  return rows.flatMap((row: any) => {
+    if (!row || row.market !== market) return [];
+    const deposits = cleanAssets(row.deposits);
+    const borrows = cleanAssets(row.borrows);
+    return [{
+      netValue: numberOrNull(row.netValue), totalDepositValue: numberOrNull(row.totalDepositValue),
+      totalBorrowValue: numberOrNull(row.totalBorrowValue), ltv: numberOrNull(row.ltv),
+      maxLtv: numberOrNull(row.maxLtv), liquidationLtv: numberOrNull(row.liquidationLtv), deposits, borrows,
+    }];
+  });
+}
+
 async function kaminoJson(path: string): Promise<any> {
   const response = await fetch(API + path, { signal: AbortSignal.timeout(9000) });
   if (!response.ok) throw new Error(`Upstream market service: ${response.status}`);
   return response.json();
 }
 
-// Resolve the actual Kamino xStocks + USDC market from live metadata rather than
-// trusting a ticker or a market address supplied by the browser.
-async function resolveLiveMarket(asset: string): Promise<LiveMarket | null> {
+async function resolveLiveMarket(asset: string): Promise<ResolvedMarket | null> {
   if (!EQUITIES.has(asset)) return null;
   const listing = await kaminoJson('/markets/collateral-reserves');
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
@@ -52,8 +90,7 @@ async function resolveLiveMarket(asset: string): Promise<LiveMarket | null> {
   if (!market) return null;
   const metrics = await kaminoJson(`/kamino-market/${market}/reserves/metrics`);
   const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
-  const usdcMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-  const debt = reserves.find(row => row.liquidityTokenMint === usdcMint && row.liquidityToken === 'USDC');
+  const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT && row.liquidityToken === 'USDC');
   const collateral = candidates.find(row => row.lendingMarket === market &&
     row.borrowReserves?.includes(debt?.reserve || '') &&
     row.borrowReserveTerms?.some(term => term.reserve === debt?.reserve));
@@ -62,17 +99,7 @@ async function resolveLiveMarket(asset: string): Promise<LiveMarket | null> {
   const backing = reserves.find(row => row.reserve === collateral.collateralReserve &&
     row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol);
   if (!backing) return null;
-  return { market };
-}
-
-export function obligationCount(payload: unknown): number | null {
-  if (Array.isArray(payload)) return payload.length;
-  if (!payload || typeof payload !== 'object') return null;
-  const record = payload as Record<string, unknown>;
-  for (const key of ['obligations', 'data', 'loans']) {
-    if (Array.isArray(record[key])) return (record[key] as unknown[]).length;
-  }
-  return null;
+  return { market, collateralReserve: collateral.collateralReserve, collateralMint: collateral.collateralMint, borrowReserve: debt.reserve };
 }
 
 function send(res: any, status: number, body: Record<string, unknown>) {
@@ -92,13 +119,10 @@ export default async function handler(req: any, res: any) {
 
   try {
     const market = await resolveLiveMarket(asset);
-    if (!market) return send(res, 200, { available: false });
-    const url = `${API}/kamino-market/${encodeURIComponent(market.market)}/users/${encodeURIComponent(wallet)}/obligations?env=mainnet-beta`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(9000) });
-    if (!response.ok) throw new Error(`Kamino API ${response.status}`);
-    const count = obligationCount(await response.json());
-    if (count === null) throw new Error('Unexpected Kamino obligations response');
-    return send(res, 200, { available: true, obligationCount: count, checkedAt: new Date().toISOString() });
+    if (!market) return send(res, 200, { available: false, positions: [] });
+    const payload = await kaminoJson(`/portfolio/${encodeURIComponent(wallet)}?env=mainnet-beta`);
+    const positions = positionsForMarket(payload, market.market);
+    return send(res, 200, { available: true, market: market.market, positions, checkedAt: new Date().toISOString() });
   } catch {
     return send(res, 503, { available: false, error: 'live_position_unavailable' });
   }
