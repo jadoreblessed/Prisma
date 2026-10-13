@@ -24,14 +24,19 @@ function mockResponse() {
 }
 
 test('portfolio parser returns only positions for the resolved market and sanitizes amounts', () => {
+  const otherCollateralMint = new PublicKey(new Uint8Array(32).fill(20)).toBase58();
   const result = positionsForMarket({ lending: [
     { market, netValue: '980.5', totalDepositValue: '1000', totalBorrowValue: '19.5', ltv: '0.0195',
-      deposits: [{ mint: collateralMint, symbol: 'NVDAx', amount: '2', value: '1000', price: '500' }],
+      deposits: [{ mint: collateralMint, symbol: 'NVDAx', amount: '2', value: '1000', price: '500' },
+        { mint: otherCollateralMint, symbol: 'SPYx', amount: '5', value: '2500', price: '500' }],
       borrows: [{ mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '19.5', value: 19.5 }] },
+    { market, netValue: '900', deposits: [{ mint: otherCollateralMint, symbol: 'SPYx', amount: '5' }], borrows: [
+      { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '50' }] },
     { market: collateralReserve, netValue: '900', deposits: [], borrows: [] },
-  ] }, market);
+  ] }, market, collateralMint, 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
   assert.equal(result.length, 1);
   assert.equal(result[0].netValue, 980.5);
+  assert.equal(result[0].deposits.length, 1);
   assert.deepEqual(result[0].deposits[0], { mint: collateralMint, symbol: 'NVDAx', amount: '2', value: 1000, price: 500 });
   assert.equal(result[0].borrows[0].value, 19.5);
 });
