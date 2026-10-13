@@ -1,11 +1,11 @@
 const API = 'https://api.kamino.finance';
-const XSTOCKS_MARKET = 'CF32kn7AY8X1bW7ZkGcHc4X9ZWTxqKGCJk6QwrQkDcdw';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const EQUITIES = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR']);
 
 type CollateralRow = {
   name?: string; lendingMarket?: string; lendingMarketName?: string;
   collateralReserve?: string; collateralMint?: string; borrowReserves?: string[];
+  debtTag?: string; slugs?: string[];
   borrowReserveTerms?: { reserve: string; maxLtv: string; liquidationLtv: string }[];
 };
 type ReserveMetric = {
@@ -49,18 +49,16 @@ async function kaminoJson(path: string): Promise<any> {
 // Never infer an onchain reserve merely from a ticker in that catalogue.
 export async function resolveLiveMarket(asset: string): Promise<LiveMarket | null> {
   if (!EQUITIES.has(asset)) return null;
-  const [listing, metrics] = await Promise.all([
-    kaminoJson('/markets/collateral-reserves'),
-    kaminoJson(`/kamino-market/${XSTOCKS_MARKET}/reserves/metrics`),
-  ]);
+  const listing = await kaminoJson('/markets/collateral-reserves');
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
-  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
   const symbol = asset + 'x';
-  const collateral = rows.find(row => row.lendingMarket === XSTOCKS_MARKET &&
-    /xstocks/i.test(row.lendingMarketName || '') &&
-    reserves.some(metric => metric.reserve === row.collateralReserve &&
-      metric.liquidityTokenMint === row.collateralMint && metric.liquidityToken === symbol));
-  if (!collateral || !validAddress(collateral.collateralReserve) || !validAddress(collateral.collateralMint)) return null;
+  const slug = `${symbol.toLowerCase()}-xstocks`;
+  const collateral = rows.find(row => row.slugs?.includes(slug) && row.debtTag === 'xstocks' &&
+    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' '));
+  if (!collateral || !validAddress(collateral.lendingMarket) ||
+      !validAddress(collateral.collateralReserve) || !validAddress(collateral.collateralMint)) return null;
+  const metrics = await kaminoJson(`/kamino-market/${collateral.lendingMarket}/reserves/metrics`);
+  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
   const backing = reserves.find(row => row.reserve === collateral.collateralReserve &&
     row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol);
   const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT &&
@@ -74,7 +72,7 @@ export async function resolveLiveMarket(asset: string): Promise<LiveMarket | nul
       supplyApy < 0 || borrowApy < 0) return null;
   return {
     asset,
-    market: XSTOCKS_MARKET, collateralReserve: collateral.collateralReserve,
+    market: collateral.lendingMarket, collateralReserve: collateral.collateralReserve,
     collateralMint: collateral.collateralMint, borrowReserve: debt.reserve,
     borrowMint: USDC_MINT, collateralSymbol: symbol, borrowSymbol: 'USDC',
     supplyApy, borrowApy, maxLtv, liquidationLtv, updatedAt: new Date().toISOString(),
@@ -96,17 +94,16 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return send(req, res, 405, { available: false, error: 'method_not_allowed' });
   if (req.query?.inspect === '1' && String(req.headers?.accept || '').includes('text/html')) {
     try {
-      const [listing, metrics] = await Promise.all([
-        kaminoJson('/markets/collateral-reserves'),
-        kaminoJson(`/kamino-market/${XSTOCKS_MARKET}/reserves/metrics`),
-      ]);
+      const listing = await kaminoJson('/markets/collateral-reserves');
       const rows = Array.isArray(listing) ? listing : listing?.collateralReserves;
+      const collateral = rows?.find((row: any) => row.slugs?.includes('nvdax-xstocks'));
+      const metrics = collateral?.lendingMarket ? await kaminoJson(`/kamino-market/${collateral.lendingMarket}/reserves/metrics`) : [];
       const reserves = Array.isArray(metrics) ? metrics : metrics?.reserves;
       const summary = {
         listingKeys: Object.keys(listing || {}).slice(0, 12), listingCount: rows?.length,
-        sampleCollateral: rows?.find((row: any) => /nvdax?/i.test(row.name || row.symbol || '')) || rows?.[0],
+        sampleCollateral: collateral || rows?.[0],
         metricsKeys: Object.keys(metrics || {}).slice(0, 12), metricsCount: reserves?.length,
-        sampleMetric: reserves?.find((row: any) => /nvdax?/i.test(row.liquidityToken || row.symbol || '')) || reserves?.[0],
+        sampleMetric: reserves?.filter((row: any) => /nvdax?|usdc/i.test(row.liquidityToken || row.symbol || '')),
       };
       const safe = JSON.stringify(summary, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
