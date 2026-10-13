@@ -1,4 +1,4 @@
-import { send } from './_shared';
+import { send } from './_shared.ts';
 
 type CollateralReserve = {
   name?: string;
