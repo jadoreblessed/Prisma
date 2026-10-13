@@ -49,5 +49,5 @@ function Landing() {
 export default function App(){
   const [route,setRoute]=useState(()=>location.hash.startsWith('#/')?location.hash.slice(2):'');
   useEffect(()=>{const change=()=>{const next=location.hash.startsWith('#/')?location.hash.slice(2):'';if(next||document.querySelector('.product-page'))window.scrollTo(0,0);setRoute(next)};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);
-  return ['markets','vaults','stake','claim','docs','faq'].includes(route)?<Product route={route}/>:<Landing/>;
+  return ['markets','vaults','claim','docs','faq'].includes(route)?<Product route={route}/>:<Landing/>;
 }

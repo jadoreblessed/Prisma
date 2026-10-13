@@ -84,3 +84,11 @@
 .ch-frame.is-visible .ch-age-ui>div{animation-duration:1.2s;animation-delay:calc(var(--age-index,0)*170ms + 380ms)}
 @keyframes ch-detail-rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ch-section-heading.reveal.is-visible>*,.ch-frame.is-visible .ch-market-head,.ch-frame.is-visible .ch-position-alert{animation:none}.ch-market-row{transition:none}}
+
+/* The tables sit on a restrained version of the hero's prismatic surface. */
+.ch-frame{position:relative;isolation:isolate;border-radius:20px;background:radial-gradient(ellipse 60% 70% at 74% 16%,#f4dfd4 0%,transparent 80%),radial-gradient(ellipse 70% 100% at 8% 84%,#ebeff6 0%,transparent 76%),#f8f8f7}
+.ch-frame::before{content:'';position:absolute;z-index:-1;inset:-40%;background:repeating-linear-gradient(126deg,transparent 0 9%,#dde9f54a 10%,#f9bdc43f 10.8%,#eea57b5a 11.6%,#fff8 12.5%,transparent 16%,transparent 31%);filter:blur(13px);opacity:.65;animation:ch-prism-drift 22s ease-in-out infinite alternate;pointer-events:none}
+.ch-frame::after{content:'';position:absolute;z-index:-1;inset:0;border-radius:inherit;background:radial-gradient(ellipse 40% 56% at 80% 10%,#ffcfaa57,transparent 80%);pointer-events:none}
+.ch-frame-inner{position:relative;z-index:1}.ch-market-ui,.ch-position-ui,.ch-age-ui{box-shadow:0 20px 45px #28263126,0 1px 2px #fff inset}
+@keyframes ch-prism-drift{from{transform:translate3d(-3%,1%,0) rotate(-2deg)}to{transform:translate3d(3%,-2%,0) rotate(2deg)}}
+@media(prefers-reduced-motion:reduce){.ch-frame::before{animation:none}}
