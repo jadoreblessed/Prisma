@@ -1,4 +1,4 @@
-import { bodyOf, markets, send } from './_shared';
+import { bodyOf, markets, send } from './_shared.ts';
 
 export default function handler(req: any, res: any) {
   if (req.method !== 'POST') return send(res, 405, { error: 'method_not_allowed' });
