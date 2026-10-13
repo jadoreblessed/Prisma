@@ -102,8 +102,12 @@ export default async function handler(req: any, res: any) {
       const summary = {
         listingKeys: Object.keys(listing || {}).slice(0, 12), listingCount: rows?.length,
         sampleCollateral: collateral || rows?.[0],
+        matchingCollateral: rows?.filter((row: any) => row.slugs?.some((slug: string) => slug.includes('nvdax'))).map((row: any) => ({
+          name: row.name, lendingMarket: row.lendingMarket, borrowReserves: row.borrowReserves,
+        })),
         metricsKeys: Object.keys(metrics || {}).slice(0, 12), metricsCount: reserves?.length,
         sampleMetric: reserves?.filter((row: any) => /nvdax?|usdc/i.test(row.liquidityToken || row.symbol || '')),
+        eligibleBorrowMetrics: reserves?.filter((row: any) => collateral?.borrowReserves?.includes(row.reserve)),
       };
       const safe = JSON.stringify(summary, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
