@@ -53,7 +53,7 @@ export async function resolveLiveMarket(asset: string): Promise<LiveMarket | nul
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
   const symbol = asset + 'x';
   const slug = `${symbol.toLowerCase()}-xstocks`;
-  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'xstocks' &&
+  const candidates = rows.filter(row => row.slugs?.includes(slug) &&
     /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
     validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
   const market = candidates[0]?.lendingMarket;
@@ -108,7 +108,10 @@ export default async function handler(req: any, res: any) {
         listingKeys: Object.keys(listing || {}).slice(0, 12), listingCount: rows?.length,
         sampleCollateral: collateral || rows?.[0],
         matchingCollateral: rows?.filter((row: any) => row.slugs?.some((slug: string) => slug.includes('nvdax'))).map((row: any) => ({
-          name: row.name, lendingMarket: row.lendingMarket, borrowReserves: row.borrowReserves,
+          name: row.name, lendingMarket: row.lendingMarket, lendingMarketName: row.lendingMarketName,
+          debtTag: row.debtTag, slugs: row.slugs, collateralReserve: row.collateralReserve,
+          collateralMint: row.collateralMint, borrowReserves: row.borrowReserves,
+          borrowReserveTerms: row.borrowReserveTerms,
         })),
         metricsKeys: Object.keys(metrics || {}).slice(0, 12), metricsCount: reserves?.length,
         sampleMetric: reserves?.filter((row: any) => /nvdax?|usdc/i.test(row.liquidityToken || row.symbol || '')),
