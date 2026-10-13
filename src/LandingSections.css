@@ -92,3 +92,21 @@
 .ch-frame-inner{position:relative;z-index:1}.ch-market-ui,.ch-position-ui,.ch-age-ui{box-shadow:0 20px 45px #28263126,0 1px 2px #fff inset}
 @keyframes ch-prism-drift{from{transform:translate3d(-3%,1%,0) rotate(-2deg)}to{transform:translate3d(3%,-2%,0) rotate(2deg)}}
 @media(prefers-reduced-motion:reduce){.ch-frame::before{animation:none}}
+
+/* One market moves through the table, position and price context. */
+.ch-market-ui{overflow:visible}
+.ch-market-row{position:relative;z-index:0;transition:opacity .6s,transform .65s cubic-bezier(.16,1,.3,1),background .4s,box-shadow .4s}
+.ch-market-ui--focused .ch-market-row:not(.ch-market-row--selected){opacity:.46}
+.ch-frame.is-visible .ch-market-ui--focused .ch-market-row--selected{z-index:2;opacity:1;transform:translateX(5px) scale(1.012);background:#fff9f5;box-shadow:0 5px 18px #503b2b21,inset 3px 0 #b4523b}
+.ch-row-detail{position:absolute;right:5px;bottom:calc(100% + 6px);padding:6px 9px;background:#1b1b20;color:#fff;border-radius:5px;white-space:nowrap;opacity:0;transform:translateY(4px);pointer-events:none;font-size:8px;transition:opacity .25s,transform .25s}
+.ch-market-row--selected:hover .ch-row-detail{opacity:1;transform:none}
+.ch-position-alert{display:flex;align-items:center;gap:4px}.ch-position-alert img{width:13px;height:13px;border-radius:50%;margin-right:3px}
+.ch-frame--position.is-visible .ch-position-alert{border-left-color:#b4523b}
+.ch-age-sequence{width:100%;background:#fff;border:1px solid #d4d4d8;border-radius:8px;box-shadow:0 20px 45px #28263126;overflow:hidden}
+.ch-age-sequence .ch-age-ui{border:0;border-bottom:1px solid #e8e8ec;border-radius:0;box-shadow:none}
+.ch-price-track{padding:16px 16px 13px}.ch-price-track-labels,.ch-price-caption{display:grid;grid-template-columns:42% 40% 18%;align-items:center;color:#929097;font-size:7px}.ch-price-track-labels{letter-spacing:.09em;font-weight:700}.ch-price-track-labels span:nth-child(2){color:#b4523b}.ch-price-track-labels span:last-child,.ch-price-caption span:last-child{text-align:right}
+.ch-price-track svg{display:block;width:100%;height:75px;margin:6px 0}.ch-price-grid{fill:none;stroke:#e8e6e5;stroke-width:1}.ch-price-line{fill:none;stroke:#222229;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:670;stroke-dashoffset:670}.ch-price-hold{fill:none;stroke:#b4523b;stroke-width:2;stroke-dasharray:3 5;opacity:0}.ch-price-marker,.ch-price-update{fill:#b4523b;opacity:0}
+.ch-age-sequence--playing .ch-price-line{animation:ch-price-draw 3.9s .2s cubic-bezier(.38,.02,.24,1) forwards}.ch-age-sequence--playing .ch-price-hold{animation:ch-hold-show 1.2s 1.65s both}.ch-age-sequence--playing .ch-price-marker{animation:ch-hold-show .4s 1.4s both}.ch-age-sequence--playing .ch-price-update{animation:ch-hold-show .4s 3.1s both}
+@keyframes ch-price-draw{to{stroke-dashoffset:0}}@keyframes ch-hold-show{to{opacity:1}}
+@media(max-width:620px){.ch-price-track{padding:12px 9px}.ch-price-track-labels,.ch-price-caption{font-size:5.5px}.ch-price-track svg{height:62px}.ch-age-sequence .ch-age-ui b{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.ch-market-ui--focused .ch-market-row:not(.ch-market-row--selected){opacity:1}.ch-frame.is-visible .ch-market-ui--focused .ch-market-row--selected{transform:none}.ch-price-line{stroke-dashoffset:0}.ch-price-hold,.ch-price-marker,.ch-price-update{opacity:1}.ch-age-sequence--playing .ch-price-line,.ch-age-sequence--playing .ch-price-hold,.ch-age-sequence--playing .ch-price-marker,.ch-age-sequence--playing .ch-price-update{animation:none}}
