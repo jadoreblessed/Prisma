@@ -53,16 +53,21 @@ export async function resolveLiveMarket(asset: string): Promise<LiveMarket | nul
   const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
   const symbol = asset + 'x';
   const slug = `${symbol.toLowerCase()}-xstocks`;
-  const collateral = rows.find(row => row.slugs?.includes(slug) && row.debtTag === 'xstocks' &&
-    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' '));
+  const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'xstocks' &&
+    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') &&
+    validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
+  const market = candidates[0]?.lendingMarket;
+  if (!market) return null;
+  const metrics = await kaminoJson(`/kamino-market/${market}/reserves/metrics`);
+  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
+  const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT && row.liquidityToken === 'USDC');
+  const collateral = candidates.find(row => row.lendingMarket === market &&
+    row.borrowReserves?.includes(debt?.reserve || '') &&
+    row.borrowReserveTerms?.some(term => term.reserve === debt?.reserve));
   if (!collateral || !validAddress(collateral.lendingMarket) ||
       !validAddress(collateral.collateralReserve) || !validAddress(collateral.collateralMint)) return null;
-  const metrics = await kaminoJson(`/kamino-market/${collateral.lendingMarket}/reserves/metrics`);
-  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
   const backing = reserves.find(row => row.reserve === collateral.collateralReserve &&
     row.liquidityTokenMint === collateral.collateralMint && row.liquidityToken === symbol);
-  const debt = reserves.find(row => row.liquidityTokenMint === USDC_MINT &&
-    row.liquidityToken === 'USDC' && collateral.borrowReserves?.includes(row.reserve));
   const terms = collateral.borrowReserveTerms?.find(row => row.reserve === debt?.reserve);
   if (!backing || !debt || !terms || !validAddress(debt.reserve)) return null;
   const maxLtv = Number(terms.maxLtv), liquidationLtv = Number(terms.liquidationLtv);
