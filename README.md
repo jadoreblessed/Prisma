@@ -23,4 +23,15 @@ npm run dev
 npm run build
 ```
 
+## Kamino instruction preflight
+
+The read-only preflight builds an instruction with Kamino's SDK, checks the onchain market and reserve mints, then simulates the result. It does not sign or send a transaction. For borrowing, it requires the wallet's existing xStock collateral in the corresponding vanilla obligation. A simulation failure must not be treated as an executable quote.
+
+```bash
+PRISMA_MAINNET_RPC=https://YOUR_MAINNET_RPC \
+  protocol/node_modules/.bin/tsx scripts/check-kamino-action.ts NVDA supply 1 WALLET_PUBLIC_KEY
+```
+
+Use `collateral` for an xStock deposit and `borrow` for a USDC borrowing preflight. An unfunded address will fail simulation because it cannot pay the transaction fee. The frontend remains read-only; these checks do not enable Supply or Borrow for users.
+
 The frontend uses hash routes and can be served statically, but live reserve data needs the `/api/live-market` server function. The illustrative `/api/markets` and `/api/quote` endpoints also require server functions. `/api/kamino-market` is an older discovery probe and is not used in the interface.
