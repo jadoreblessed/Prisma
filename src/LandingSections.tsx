@@ -19,7 +19,7 @@ function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <
 export default function LandingSections(){
   return <main className="ch-story" id="about">
     <div className="ch-wrap">
-      <div className="ch-stats reveal" aria-label="Preview catalogue"><div><b>{equityAssets}</b><span>Equity assets in preview</span></div><div><b>{marketData.length}</b><span>Distinct assets shown</span></div><div><b>1</b><span>Clear view of every market</span></div></div>
+      <div className="ch-stats reveal" aria-label="Market catalogue"><div><b>{equityAssets}</b><span>Tokenized equity assets</span></div><div><b>{marketData.length}</b><span>Assets in the catalogue</span></div><div><b>1</b><span>Clear view of each market</span></div></div>
     </div>
     <MarketAct/>
     <div className="ch-wrap">
@@ -27,8 +27,8 @@ export default function LandingSections(){
         <div className="ch-feature-row"><Frame kind="market"><MarketPreview/></Frame><div className="ch-feature-copy reveal"><span className="ch-feature-number">01 / THE MARKET</span><h3>One asset.<br/>One clear limit.</h3><p>Each market pairs a collateral token with a stablecoin, its own price feed and liquidation limit. Browse them together with supply and borrow rates.</p><a href="#/markets">View markets <span aria-hidden="true">↗</span></a></div></div>
         <div className="ch-feature-row"><div className="ch-feature-copy reveal"><span className="ch-feature-number">02 / THE POSITION</span><h3>Lend and borrow,<br/>side by side.</h3><p>Supply stablecoins or post tokenized shares as collateral. The amount you owe and the market limit remain visible before you act.</p><a href="#/markets">Explore the app <span aria-hidden="true">↗</span></a></div><Frame kind="position"><PositionPreview/></Frame></div>
         <div className="ch-feature-row"><Frame kind="age"><AgePreview/></Frame><div className="ch-feature-copy reveal"><span className="ch-feature-number">03 / THE CONTEXT</span><h3>The price has<br/>a timestamp.</h3><p>Underlying exchanges close. A displayed price can stay still while a loan continues to accrue. Prisma shows when that price last moved beside the position.</p><GlassButton href="#/markets" arrow>Launch app</GlassButton></div></div>
-        <p className="ch-disclaimer">Illustrative interface preview. Market figures and price ages are not live; wallet actions are not connected.</p>
+        <p className="ch-figure-note">The interface examples show sample figures. Check a market for its current reserve terms.</p>
       </section>
-    </div><footer className="ch-footer"><span>2026 PRISMA / INTERFACE PREVIEW</span><div><a href="#top">Back to top ↑</a><a href="#/docs">Docs</a><a href="#/faq">FAQ</a><a href="https://x.com/" target="_blank" rel="noopener noreferrer">X</a></div></footer>
+    </div><footer className="ch-footer"><span>© 2026 PRISMA</span><div><a href="#top">Back to top ↑</a><a href="#/docs">Docs</a><a href="#/faq">FAQ</a><a href="https://x.com/" target="_blank" rel="noopener noreferrer">X</a></div></footer>
   </main>;
 }

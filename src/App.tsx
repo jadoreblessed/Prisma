@@ -15,9 +15,9 @@ function Landing() {
   useEffect(()=>{document.body.style.overflow=menuOpen?'hidden':'';return()=>{document.body.style.overflow=''}},[menuOpen]);
   useEffect(()=>{
     const items=document.querySelectorAll<HTMLElement>('.reveal:not(.ch-stats), .ch-feature-row');
-    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.01,rootMargin:'0px 0px 20% 0px'});
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.12,rootMargin:'0px 0px -8% 0px'});
     items.forEach(item=>observer.observe(item));
-    const statsObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');statsObserver.unobserve(entry.target)}}),{threshold:.15,rootMargin:'0px 0px -5% 0px'});
+    const statsObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');statsObserver.unobserve(entry.target)}}),{threshold:.05,rootMargin:'0px 0px 0px 0px'});
     document.querySelectorAll<HTMLElement>('.ch-stats').forEach(item=>statsObserver.observe(item));
     return()=>{observer.disconnect();statsObserver.disconnect()};
   },[]);

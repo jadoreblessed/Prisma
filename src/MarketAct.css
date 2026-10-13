@@ -44,3 +44,17 @@
 .market-act-days button i{border-color:#7d7e83}.market-act-days button.active i{background:#d65f24;border-color:#d65f24;box-shadow:0 0 0 3px #d65f2433}
 .market-act-tape{color:#56585e}
 @media(prefers-reduced-motion:reduce){.market-act-background-fallback:before{animation:none}.market-act-background:after{display:none}}
+
+/* Give each stop on the price timeline room to breathe while scrolling. */
+.market-act-track{height:500vh}
+.market-act-scene{transition:opacity 1.55s cubic-bezier(.16,1,.3,1),transform 1.75s cubic-bezier(.16,1,.3,1)}
+.market-act-clock,.market-act-board{transition:border-color .8s ease}
+.market-act--age .market-act-clock{animation:act-board-settle 1.6s .1s both cubic-bezier(.16,1,.3,1)}
+.market-act--age .market-act-copy>*{animation:act-copy-settle 1.4s both cubic-bezier(.16,1,.3,1)}
+.market-act--age .market-act-copy h2{animation-delay:.13s}
+.market-act--age .market-act-copy p{animation-delay:.28s}
+.market-act-hours strong{animation-duration:1.7s}
+.market-act-status b,.market-act-status p{animation:act-copy-settle 1.15s both cubic-bezier(.16,1,.3,1)}
+@keyframes act-board-settle{from{opacity:.4;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes act-copy-settle{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.market-act--age .market-act-clock,.market-act--age .market-act-copy>*,.market-act-status b,.market-act-status p{animation:none}}
