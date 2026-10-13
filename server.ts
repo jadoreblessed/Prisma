@@ -6,7 +6,7 @@ const root = path.resolve('dist');
 const port = Number(process.env.PORT || 3000);
 const routes = new Set([
   'health', 'markets', 'kamino-market', 'live-market', 'live-position',
-  'kamino-prepare', 'transaction-status', 'protocol', 'quote',
+  'kamino-prepare', 'transaction-status', 'protocol', 'quote', 'site-config',
 ]);
 const types: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',

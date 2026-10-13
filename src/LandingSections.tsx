@@ -16,7 +16,7 @@ function MarketPreview() {
 function PositionPreview(){return <div className="ch-position-ui" aria-label="Illustrative lend and borrow panel"><div className="ch-position-alert">The price behind this market last moved <b>4h 17m</b> ago. Review its age before acting.</div><div className="ch-position-panels"><div><strong>Lend USDG</strong><span>You supplied <b>—</b></span><span>In your wallet <b>—</b></span><span>Earning <b className="ch-teal">0.00%</b></span><span>Utilization <b>3%</b></span><div className="ch-position-input">0.00 <small>USDG</small></div><div className="ch-position-actions"><i>Supply</i><i>Withdraw</i></div></div><div><strong>Borrow against SPY</strong><span>Collateral posted <b>—</b></span><span>You owe <b>—</b></span><span>Paying <b className="ch-red">0.04%</b></span><span>Liquidated above <b>62.5%</b></span><div className="ch-position-input">0.00 <small>SPY</small></div><div className="ch-position-actions"><i>Add collateral</i><i>Remove</i></div></div></div></div>}
 function AgePreview(){return <div className="ch-age-ui" aria-label="Illustrative position summary"><div><small>Total supplied</small><b>$21.7K</b></div><div><small>Total borrowed</small><b>$555</b></div><div><small>Utilization</small><b>3%</b></div><div><small>Price age</small><b className="ch-red">4h 17m</b></div></div>}
 function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <div className={`ch-frame ch-frame--${kind||'default'} reveal`}><div className="ch-frame-inner">{children}</div></div>}
-export default function LandingSections(){
+export default function LandingSections({ xUrl }: { xUrl: string }){
   return <main className="ch-story" id="about">
     <div className="ch-wrap">
       <div className="ch-stats reveal" aria-label="Market catalogue"><div><b>{equityAssets}</b><span>Tokenized equity assets</span></div><div><b>{marketData.length}</b><span>Assets in the catalogue</span></div><div><b>1</b><span>Clear view of each market</span></div></div>
@@ -29,6 +29,6 @@ export default function LandingSections(){
         <div className="ch-feature-row"><Frame kind="age"><AgePreview/></Frame><div className="ch-feature-copy reveal"><span className="ch-feature-number">03 / THE CONTEXT</span><h3>The price has<br/>a timestamp.</h3><p>Underlying exchanges close. A displayed price can stay still while a loan continues to accrue. Prisma shows when that price last moved beside the position.</p><GlassButton href="#/markets" arrow>Launch app</GlassButton></div></div>
         <p className="ch-figure-note">The interface examples show sample figures. Check a market for its current reserve terms.</p>
       </section>
-    </div><footer className="ch-footer"><span>© 2026 PRISMA</span><div><a href="#top">Back to top ↑</a><a href="#/docs">Docs</a><a href="#/faq">FAQ</a><a href="https://x.com/" target="_blank" rel="noopener noreferrer">X</a></div></footer>
+    </div><footer className="ch-footer"><span>© 2026 PRISMA</span><div><a href="#top">Back to top ↑</a><a href="#/docs">Docs</a><a href="#/faq">FAQ</a>{xUrl&&<a href={xUrl} target="_blank" rel="noopener noreferrer">X</a>}</div></footer>
   </main>;
 }

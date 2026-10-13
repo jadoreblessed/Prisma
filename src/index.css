@@ -158,6 +158,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #f26522;outline-offset:4p
 .landing-v2 a.glass-button,.ch-story a.glass-button,.product-page a.glass-button,button.glass-button{color:#fff;text-shadow:0 1px 2px #0007}
 .glass-button__label,.glass-button__arrow{color:#fff;opacity:1}
 .hero-badge{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;border:1px solid #2225;border-radius:999px;background:#ffffffab;padding:13px 19px;backdrop-filter:blur(16px)}
+button.hero-badge{color:inherit;cursor:pointer;font-family:inherit}
 .hero-actions{align-items:center}
 .landing-menu__cta{width:100%}
 @media(max-width:900px){.landing-nav__right{display:flex}.landing-nav__links{display:none}.landing-menu-toggle{display:flex}.landing-nav__right{margin-left:auto;margin-right:9px}}

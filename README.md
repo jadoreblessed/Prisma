@@ -48,3 +48,15 @@ Claim integrates the official Streamflow airdrop claim widget. It never displays
 - `VITE_PRISMA_CLAIM_RPC` — optional public HTTPS Solana mainnet RPC URL. This value is embedded in the browser bundle; never use a secret RPC key.
 
 The widget handles eligibility, wallet interaction, and claim through Streamflow. This repository has no recipient list, distributor or mint; no claims can succeed until the actual campaign has been created and funded. Streamflow charges a recipient claim fee according to its current published schedule, so the UI discloses that fee. The site does not hold wallet keys.
+# Site admin (X and CA)
+
+Open `https://YOUR-RENDER-DOMAIN/#/admin`. This page changes the public X link and the Solana token CA; an empty CA displays “CA coming soon.” Changes are committed to `site-config.json` in the Render deployment branch and remain after restarts. No wallet key is used.
+
+Set these **secret** environment variables on the Render web service:
+
+- `PRISMA_ADMIN_PASSWORD`: a unique password of at least 16 characters.
+- `PRISMA_CONFIG_GITHUB_TOKEN`: a fine-grained GitHub token limited to `jadoreblessed/Prisma` with **Contents: Read and write**. Do not put it in a `VITE_` variable or commit it.
+- `PRISMA_CONFIG_BRANCH`: the branch actually deployed by Render (currently `fix-preflight-build-check`).
+
+Save and deploy in Render, then sign in on the admin page by entering the password when saving. The public site reads the new settings from GitHub on each page load. If GitHub is temporarily unavailable, it uses the last bundled `site-config.json`.
+
