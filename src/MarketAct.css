@@ -64,7 +64,5 @@
 .market-act-tape{width:100%;height:100%;display:block;overflow:hidden;white-space:nowrap}
 .market-act-tape-track{height:100%;width:max-content;display:flex;align-items:center;animation:act-tape-full 36s linear infinite}
 .market-act-tape-track span{display:block;flex:none;animation:none!important}
-.market-act-footnote{position:absolute;right:0;top:0;height:100%;display:flex;align-items:center;padding:0 max(26px,calc((100vw - 1128px)/2)) 0 46px;background:linear-gradient(90deg,transparent,#f7f7f7 24%,#f7f7f7)}
 @keyframes act-tape-full{to{transform:translateX(-50%)}}
-@media(max-width:680px){.market-act-footnote{display:none}}
 @media(prefers-reduced-motion:reduce){.market-act-tape-track{animation:none}}
