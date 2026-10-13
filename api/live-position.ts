@@ -76,6 +76,15 @@ export function positionsForMarket(payload: unknown, market: string, collateralM
   });
 }
 
+export function suppliedUsdcForMarket(payload: unknown, market: string): PortfolioAsset[] {
+  if (!payload || typeof payload !== 'object' || !validAddress(market)) return [];
+  const portfolio = payload as Record<string, any>;
+  const rows = Array.isArray(portfolio.lending) ? portfolio.lending
+    : Array.isArray(portfolio.positions?.lending) ? portfolio.positions.lending : [];
+  return rows.flatMap((row: any) => row?.market === market ?
+    cleanAssets(row.deposits).filter(item => item.mint === USDC_MINT) : []);
+}
+
 async function kaminoJson(path: string): Promise<any> {
   const response = await fetch(API + path, { signal: AbortSignal.timeout(9000) });
   if (!response.ok) throw new Error(`Upstream market service: ${response.status}`);
@@ -127,7 +136,8 @@ export default async function handler(req: any, res: any) {
     if (!market) return send(res, 200, { available: false, positions: [] });
     const payload = await kaminoJson(`/portfolio/${encodeURIComponent(wallet)}?env=mainnet-beta`);
     const positions = positionsForMarket(payload, market.market, market.collateralMint, USDC_MINT);
-    return send(res, 200, { available: true, market: market.market, positions, checkedAt: new Date().toISOString() });
+    const supplies = suppliedUsdcForMarket(payload, market.market);
+    return send(res, 200, { available: true, market: market.market, positions, supplies, checkedAt: new Date().toISOString() });
   } catch {
     return send(res, 503, { available: false, error: 'live_position_unavailable' });
   }
