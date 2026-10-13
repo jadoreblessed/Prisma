@@ -19,7 +19,13 @@ export function units(value: string, decimals: number): string {
 }
 
 export async function prepareKamino(asset: string, action: Action, value: string, wallet: string) {
-  const owner = new PublicKey(wallet);
+  let owner: PublicKey;
+  try {
+    owner = new PublicKey(wallet);
+    if (!PublicKey.isOnCurve(owner.toBytes())) throw new Error('invalid_wallet');
+  } catch {
+    throw new Error('invalid_wallet');
+  }
   const live = await resolveLiveMarket(asset);
   if (!live) throw new Error('market_unavailable');
   const rpc = createSolanaRpc(RPC);
@@ -108,7 +114,7 @@ export default async function handler(req: any, res: any) {
     return send(res, 200, await prepareKamino(body.asset, body.action, body.amount, body.wallet));
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'preflight_failed';
-    const known = /^(invalid_amount|too_many_decimals|market_unavailable|non_mainnet_rpc|reserve_mismatch|insufficient_token_balance|collateral_required|position_required|deposit_required|debt_required|empty_action|lookup_table_unavailable|transaction_too_large|unexpected_signer)/.test(reason);
+    const known = /^(invalid_wallet|invalid_amount|too_many_decimals|market_unavailable|non_mainnet_rpc|reserve_mismatch|insufficient_token_balance|collateral_required|position_required|deposit_required|debt_required|empty_action|lookup_table_unavailable|transaction_too_large|unexpected_signer)/.test(reason);
     return send(res, known ? 400 : 503, { error: known ? reason : 'preflight_failed' });
   }
 }
