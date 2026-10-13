@@ -98,4 +98,5 @@
 .product-live-info__stats div{display:flex;flex-direction:column;gap:5px}
 .product-live-info__stats span{color:#777;font-size:12px}
 .product-live-info__stats strong{font-size:18px}
+.product-live-position{display:grid;gap:7px;margin-top:20px;padding:15px 16px;border:1px solid rgba(28,29,34,.12);border-radius:13px;background:#fff}.product-live-position>strong{font-size:15px;font-weight:600}.product-live-position>small{color:#777;font-size:11px;line-height:1.45}
 @media(max-width:650px){.product-live-info__stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
