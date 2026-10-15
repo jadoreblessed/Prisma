@@ -1,0 +1,23 @@
+.asset-ribbon{position:relative;z-index:1;padding:30px 0 48px;color:#1b1b20;background:transparent;overflow:hidden}
+.asset-ribbon__heading{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1250px;margin:0 auto 28px;padding:0 32px}
+.asset-ribbon__heading>span{font:500 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.15em;color:#57575e}
+.asset-ribbon__heading>div{display:flex;align-items:center;gap:20px}
+.asset-ribbon__heading a{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:inherit;text-decoration:none}
+.asset-ribbon__heading button{display:grid;place-items:center;width:32px;height:32px;border:1px solid #1b1b2026;border-radius:50%;background:transparent;color:inherit;cursor:pointer}
+.asset-ribbon__viewport{overflow:hidden;mask-image:linear-gradient(to right,transparent,#000 5%,#000 95%,transparent)}
+.asset-ribbon__track{display:flex;width:max-content;animation:prisma-asset-marquee 48s linear infinite;will-change:transform}
+.asset-ribbon__group{display:flex;align-items:center;flex-shrink:0;justify-content:space-around;min-width:100vw}
+.asset-ribbon__asset{position:relative;display:flex;align-items:center;flex-shrink:0;gap:17px;min-width:225px;padding:16px 32px 22px;color:inherit;text-decoration:none}
+.asset-ribbon__asset img{width:52px;height:52px;object-fit:contain;transition:transform .35s ease}
+.asset-ribbon__asset span{display:flex;flex-direction:column;gap:5px}
+.asset-ribbon__asset b{font-size:24px;font-weight:550;line-height:1.15;letter-spacing:-.045em}
+.asset-ribbon__asset small{font-size:13px;color:#62626a}
+.asset-ribbon__asset::after{content:'';position:absolute;bottom:4px;left:32px;width:52px;height:2px;background:#d76c32;transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.asset-ribbon__asset:hover img{transform:translateY(-3px)}
+.asset-ribbon__asset:hover::after,.asset-ribbon__asset:focus-visible::after{transform:scaleX(1)}
+.asset-ribbon__viewport:focus-within .asset-ribbon__track,.asset-ribbon.is-paused .asset-ribbon__track{animation-play-state:paused}
+.asset-ribbon a:focus-visible,.asset-ribbon button:focus-visible{outline:2px solid #b65425;outline-offset:4px}
+@media(hover:hover){.asset-ribbon__viewport:hover .asset-ribbon__track{animation-play-state:paused}}
+@keyframes prisma-asset-marquee{to{transform:translateX(-50%)}}
+@media(max-width:640px){.asset-ribbon{padding:22px 0 30px}.asset-ribbon__heading{padding:0 20px;margin-bottom:16px;gap:12px}.asset-ribbon__heading>span{font-size:9px;letter-spacing:.1em}.asset-ribbon__heading>div{gap:10px}.asset-ribbon__heading a{font-size:11px}.asset-ribbon__asset{min-width:190px;padding:12px 24px 20px;gap:13px}.asset-ribbon__asset img{width:42px;height:42px}.asset-ribbon__asset b{font-size:21px}.asset-ribbon__asset small{font-size:12px}.asset-ribbon__asset::after{left:24px;width:42px}}
+@media(prefers-reduced-motion:reduce){.asset-ribbon__track{animation:none;transform:none;will-change:auto}.asset-ribbon__viewport{overflow-x:auto;mask-image:none}.asset-ribbon__group[aria-hidden=true]{display:none}.asset-ribbon__heading button{display:none}.asset-ribbon__asset img,.asset-ribbon__asset::after{transition:none}}
