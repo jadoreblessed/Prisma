@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import GlassButton from './GlassButton';
 import MarketAct from './MarketAct';
-import { equityAssets, markets as marketData, tokenLogo } from './marketData';
+import { tokenLogo } from './marketData';
 import './LandingSections.css';
 
 const featured = [
@@ -54,9 +54,6 @@ function AgePreview(){
 function Frame({children,kind}:{children:React.ReactNode;kind?:string}){return <div className={`ch-frame ch-frame--${kind||'default'} reveal`}><div className="ch-frame-inner">{children}</div></div>}
 export default function LandingSections({ xUrl }: { xUrl: string }){
   return <main className="ch-story" id="about">
-    <div className="ch-wrap">
-      <div className="ch-stats reveal" aria-label="Market catalogue"><div><b>{equityAssets}</b><span>Tokenized equity assets</span></div><div><b>{marketData.length}</b><span>Assets in the catalogue</span></div><div><b>1</b><span>Clear view of each market</span></div></div>
-    </div>
     <MarketAct/>
     <div className="ch-wrap">
       <section className="ch-features" id="how"><div className="ch-section-heading reveal"><span className="ch-kicker">PRISMA / THE PRODUCT</span><h2>Everything in one view.</h2><p>An isolated market, your position and the age of its price — connected in one place.</p></div>
