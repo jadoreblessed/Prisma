@@ -4,6 +4,7 @@ import Product from './Product';
 import PrismaMark from './PrismaMark';
 import GlassButton from './GlassButton';
 import LandingSections from './LandingSections';
+import AssetRibbon from './AssetRibbon';
 import SiteAdmin from './SiteAdmin';
 
 const MARKETS = '#/markets';
@@ -42,6 +43,7 @@ function Landing() {
           <div className="hero-actions"><GlassButton href={MARKETS} arrow>Explore markets</GlassButton>{branding.ca?<button className="hero-badge" type="button" onClick={copyCa} title={branding.ca}>{copied?'CA copied':`CA ${branding.ca.slice(0,4)}…${branding.ca.slice(-4)} · copy`}</button>:<span className="hero-badge">CA coming soon</span>}</div>
         </div><span className="hero-corner">01 / 02&nbsp; &nbsp; SCROLL TO EXPLORE</span>
       </div>
+      <AssetRibbon/>
     </section>
     <LandingSections xUrl={branding.xUrl}/>
     <div className={`landing-menu ${menuOpen?'is-open':''}`} aria-hidden={!menuOpen}><div className="landing-menu__backdrop" onClick={()=>setMenuOpen(false)}/><div className="landing-menu__sheet">
