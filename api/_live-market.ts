@@ -1,7 +1,7 @@
+import { CATALOGUE_ASSETS, EQUITY_CATALOGUE } from './_asset-universe.ts';
 const API = 'https://api.kamino.finance';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const USDG_MINT = '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH';
-export const LIVE_ASSETS = new Set(['NVDA', 'AAPL', 'GOOGL', 'TSLA', 'SPY', 'QQQ', 'MSTR', 'CRCL', 'HOOD', 'cbBTC']);
 export type BorrowAsset = 'USDC' | 'USDG';
 
 type CollateralRow = {
@@ -49,10 +49,7 @@ async function kaminoJson(path: string): Promise<any> {
 
 // The old catalogue is a visual snapshot. Verify every xStock against reserve metrics.
 // Never infer an onchain reserve merely from a ticker in that catalogue.
-export async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset = 'USDC'): Promise<LiveMarket | null> {
-  if (!LIVE_ASSETS.has(asset) || (borrowAsset !== 'USDC' && borrowAsset !== 'USDG')) return null;
-  const listing = await kaminoJson('/markets/collateral-reserves');
-  const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
+function matchMarket(rows: CollateralRow[], reserves: ReserveMetric[], asset: string, borrowAsset: BorrowAsset): LiveMarket | null {
   const symbol = asset === 'cbBTC' ? asset : asset + 'x';
   const slug = asset === 'cbBTC' ? 'cbbtc-stables-xstocks' : `${symbol.toLowerCase()}-stables`;
   const candidates = rows.filter(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
@@ -60,8 +57,6 @@ export async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset 
     validAddress(row.lendingMarket) && validAddress(row.collateralReserve) && validAddress(row.collateralMint));
   const market = candidates[0]?.lendingMarket;
   if (!market) return null;
-  const metrics = await kaminoJson(`/kamino-market/${market}/reserves/metrics`);
-  const reserves: ReserveMetric[] = Array.isArray(metrics) ? metrics : [];
   const borrowMint = borrowAsset === 'USDC' ? USDC_MINT : USDG_MINT;
   const debt = reserves.find(row => row.liquidityTokenMint === borrowMint && row.liquidityToken === borrowAsset);
   const collateral = candidates.find(row => row.lendingMarket === market &&
@@ -85,5 +80,35 @@ export async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset 
     borrowMint, collateralSymbol: symbol, borrowSymbol: borrowAsset,
     supplyApy, borrowApy, maxLtv, liquidationLtv, updatedAt: new Date().toISOString(),
   };
+}
+
+export async function resolveLiveMarket(asset: string, borrowAsset: BorrowAsset = 'USDC'): Promise<LiveMarket | null> {
+  if (!CATALOGUE_ASSETS.has(asset) || (borrowAsset !== 'USDC' && borrowAsset !== 'USDG')) return null;
+  const listing = await kaminoJson('/markets/collateral-reserves');
+  const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
+  const symbol = asset === 'cbBTC' ? asset : asset + 'x';
+  const slug = asset === 'cbBTC' ? 'cbbtc-stables-xstocks' : `${symbol.toLowerCase()}-stables`;
+  const candidate = rows.find(row => row.slugs?.includes(slug) && row.debtTag === 'stables' &&
+    /xstocks/i.test(row.lendingMarketName || '') && row.name?.startsWith(symbol + ' ') && validAddress(row.lendingMarket));
+  if (!candidate?.lendingMarket) return null;
+  const metrics = await kaminoJson(`/kamino-market/${candidate.lendingMarket}/reserves/metrics`);
+  return matchMarket(rows, Array.isArray(metrics) ? metrics : [], asset, borrowAsset);
+}
+
+export async function discoverLiveAssets(): Promise<Array<{ asset: string; borrowAssets: BorrowAsset[] }>> {
+  const listing = await kaminoJson('/markets/collateral-reserves');
+  const rows: CollateralRow[] = Array.isArray(listing?.collateralReserves) ? listing.collateralReserves : [];
+  const marketAddresses = [...new Set(rows.filter(row => row.debtTag === 'stables' &&
+    /xstocks/i.test(row.lendingMarketName || '') && validAddress(row.lendingMarket)).map(row => row.lendingMarket!))];
+  const marketMetrics = await Promise.all(marketAddresses.map(async address => {
+    const metrics = await kaminoJson(`/kamino-market/${address}/reserves/metrics`);
+    return [address, Array.isArray(metrics) ? metrics as ReserveMetric[] : []] as const;
+  }));
+  const metricsByMarket = new Map(marketMetrics);
+  return EQUITY_CATALOGUE.flatMap(asset => {
+    const borrowAssets = (['USDC', 'USDG'] as BorrowAsset[]).filter(borrowAsset =>
+      marketAddresses.some(address => matchMarket(rows, metricsByMarket.get(address) || [], asset, borrowAsset)?.market === address));
+    return borrowAssets.length ? [{ asset, borrowAssets }] : [];
+  });
 }
 
