@@ -60,9 +60,6 @@
 .product-panel__divider{border-top:1px solid #e4e4e8;padding-top:22px;margin-top:25px!important}
 .product-pair{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px solid #e9e9ed;font-size:13px}
 .product-pair span{color:#777784}.product-pair strong{font-weight:500;text-align:right}
-.stake-switch{display:flex;justify-content:space-between;align-items:center;margin:-3px 0 19px}.stake-switch>span{font-size:12px;color:#777784}
-.stake-input{height:88px;border:1px solid #d8d8de;background:#f8f8fa;border-radius:12px;padding:15px 21px;display:flex;align-items:center;gap:10px;color:#9393a0;margin-bottom:17px}
-.stake-input>span{font-size:37px;margin-right:auto}.stake-input small{font-size:10px;border:1px solid #d8d8dd;padding:6px 8px;border-radius:99px}.stake-input strong{color:#303038;font-size:15px;font-weight:550}
 .product-disabled-action,.product-position-grid button{width:100%;border:0;border-radius:99px;background:#84848b;color:#fff;padding:14px;font-size:13px;margin-top:20px;cursor:not-allowed}
 .product-faq{max-width:900px;background:#fff;border:1px solid #e0e0e4;border-radius:17px;overflow:hidden}
 .product-faq>div{border-bottom:1px solid #e7e7eb}.product-faq>div:last-child{border-bottom:0}
@@ -115,3 +112,22 @@
 .product-trade__receipt a{color:#a9ead5;text-decoration:underline}
 .product-live-position{display:grid;gap:10px;margin-top:20px;padding:15px 16px;border:1px solid rgba(28,29,34,.12);border-radius:13px;background:#fff}.product-live-position>strong{font-size:15px;font-weight:600}.product-live-position>small{color:#777;font-size:11px;line-height:1.45}.product-live-position__entry{display:grid;gap:12px}.product-live-position__stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.product-live-position__stats div{display:flex;flex-direction:column;gap:4px}.product-live-position__stats span,.product-live-position__assets>span{font-size:10px;letter-spacing:.08em;color:#777}.product-live-position__stats strong{font-size:14px}.product-live-position__assets{display:grid;gap:5px;border-top:1px solid #ececf0;padding-top:9px}.product-live-position__assets>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}.product-live-position__assets small{color:#777;font-size:11px}
 @media(max-width:650px){.product-live-info__stats,.product-live-position__stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* The lending controls share the light surface of the rest of the application. */
+.product-live-info{background:#fff;border-color:#dedcda;box-shadow:0 18px 46px #2422250a}
+.product-trade{background:#fff;color:#1a1b20;border:1px solid #dfdedc;border-radius:20px;padding:24px;box-shadow:0 12px 34px #2020260a}
+.product-trade h4{color:#a74428;font-size:11px}
+.product-trade__tabs{gap:8px}
+.product-trade__tabs button{border-color:#d9d7d5;background:#f8f7f5;color:#4f5056;transition:background .35s,border-color .35s,color .35s,transform .35s}
+.product-trade__tabs button:hover{border-color:#b95b39;color:#1a1b20;transform:translateY(-2px)}
+.product-trade__tabs button.active{background:#28292d;color:#fff;border-color:#28292d;box-shadow:0 5px 14px #20202625}
+.product-trade p{color:#606168;font-size:13px}
+.product-trade__amount{color:#55565c}
+.product-trade__amount input{border-color:#d6d5d5;background:#fbfaf9;color:#1a1b20;padding:16px;transition:border-color .3s,box-shadow .3s}
+.product-trade__amount input:focus{border-color:#b95b39;box-shadow:0 0 0 3px #b95b391a}
+.product-trade>button,.product-trade__review button{background:#25262a;color:#fff;transition:background .3s,transform .3s,box-shadow .3s}
+.product-trade>button:hover:not(:disabled),.product-trade__review button:hover:not(:disabled){background:#9e4228;transform:translateY(-2px);box-shadow:0 10px 24px #9e42282b}
+.product-trade__review{border-top-color:#dedcda}
+.product-trade__review span{color:#66676b}
+.product-trade .product-trade__error{color:#b53a2f}.product-trade .product-trade__receipt,.product-trade__receipt a{color:#198477}
+@media(max-width:650px){.product-trade{padding:18px}.product-trade__tabs button{padding:10px 12px}}

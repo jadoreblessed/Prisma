@@ -1,6 +1,6 @@
 # Prisma
 
-Prisma is a tokenized equity lending interface for Solana. The visual app keeps its own Markets, Vaults, Stake, Claim, Docs and FAQ screens. Most of the market catalogue, rates, loan limits, price ages and quote calculator are illustrative previews, not data from an oracle or a lending program.
+Prisma is a tokenized equity lending interface for Solana. The visual app keeps its own Markets, Vaults, Claim, Docs and FAQ screens. Most of the market catalogue, rates, loan limits, price ages and quote calculator are illustrative previews, not data from an oracle or a lending program.
 
 ## Protocol strategy
 
@@ -10,7 +10,7 @@ The transaction path for verified markets builds an action with the pinned Kamin
 
 For the remaining catalogue, map every displayed market to verified protocol market and reserve addresses before enabling actions. Fetch positions and rates from their actual reserves. Show a live price age only after confirming the timestamp comes from the oracle that the underlying lending market actually uses. Kamino's xStocks market uses Chainlink Data Streams; a different Pyth ticker's `publish_time` cannot stand in for that timestamp.
 
-Vaults, Stake and Claim are nonfunctional previews. The archived custom program under `programs/` and `protocol/` was not deployed. `scripts/release-mainnet.sh` exits before spending SOL.
+Vaults are a nonfunctional preview. Claim has a prepared Streamflow widget that remains inactive until a real token mint and distributor are configured. The archived custom program under `programs/` and `protocol/` was not deployed. `scripts/release-mainnet.sh` exits before spending SOL.
 
 ## Local development
 
@@ -37,3 +37,26 @@ PRISMA_MAINNET_RPC=https://YOUR_MAINNET_RPC \
 Use `collateral` for an xStock deposit and `borrow` for a USDC borrowing preflight. An unfunded address will fail simulation because it cannot pay the transaction fee. The frontend remains read-only; these checks do not enable Supply or Borrow for users.
 
 The frontend uses hash routes, but verified markets and transaction preparation need the `/api/live-market`, `/api/live-position` and `/api/kamino-prepare` server functions. The illustrative `/api/markets` and `/api/quote` endpoints also require server functions. `/api/kamino-market` is an older discovery probe and is not used in the interface.
+
+## Prisma claim setup
+
+Claim integrates the official Streamflow airdrop claim widget. It never displays a wallet action until a real mainnet distribution exists. Create and fund a campaign with the correct recipient allocations in Streamflow, verify its mint and distributor address onchain, and set these build-time environment variables on the hosting service before rebuilding:
+
+- `VITE_PRISMA_DISTRIBUTOR_ID` — published Streamflow distributor account (Solana address).
+- `VITE_PRISMA_TOKEN_MINT` — published PRISMA mint (Solana address).
+- `VITE_PRISMA_TOKEN_DECIMALS` — token decimals, default 9.
+- `VITE_PRISMA_CLAIM_RPC` — optional public HTTPS Solana mainnet RPC URL. This value is embedded in the browser bundle; never use a secret RPC key.
+
+The widget handles eligibility, wallet interaction, and claim through Streamflow. This repository has no recipient list, distributor or mint; no claims can succeed until the actual campaign has been created and funded. Streamflow charges a recipient claim fee according to its current published schedule, so the UI discloses that fee. The site does not hold wallet keys.
+# Site admin (X and CA)
+
+Open `https://YOUR-RENDER-DOMAIN/#/admin`. This page changes the public X link and the Solana token CA; an empty CA displays “CA coming soon.” Changes are committed to `site-config.json` in the Render deployment branch and remain after restarts. No wallet key is used.
+
+Set these **secret** environment variables on the Render web service:
+
+- `PRISMA_ADMIN_PASSWORD`: a unique password of at least 16 characters.
+- `PRISMA_CONFIG_GITHUB_TOKEN`: a fine-grained GitHub token limited to `jadoreblessed/Prisma` with **Contents: Read and write**. Do not put it in a `VITE_` variable or commit it.
+- `PRISMA_CONFIG_BRANCH`: the branch actually deployed by Render (currently `fix-preflight-build-check`).
+
+Save and deploy in Render, then sign in on the admin page by entering the password when saving. The public site reads the new settings from GitHub on each page load. If GitHub is temporarily unavailable, it uses the last bundled `site-config.json`.
+

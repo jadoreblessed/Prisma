@@ -1,0 +1,11 @@
+.site-admin{min-height:100dvh;display:grid;place-items:center;padding:32px 18px;background:#f4f3f2;color:#1d1d20;font-family:Inter,Arial,sans-serif}
+.site-admin__panel{width:min(100%,560px);background:#fff;border:1px solid #e2dfdb;border-radius:26px;padding:clamp(24px,5vw,42px);box-shadow:0 18px 60px #2423280d;display:flex;flex-direction:column;gap:18px}
+.site-admin__back{color:#57575b;text-decoration:none;font-size:14px;width:max-content}.site-admin__back:hover{color:#171719}
+.site-admin__eyebrow{font-size:11px;letter-spacing:.22em;color:#b7532c;margin-top:12px}
+.site-admin h1{font-size:clamp(30px,5vw,44px);font-weight:500;letter-spacing:-.055em;margin:0}
+.site-admin p{margin:-8px 0 5px;color:#66676a;font-size:14px;line-height:1.5}
+.site-admin label{display:grid;gap:8px;font-size:13px;font-weight:600}
+.site-admin input{width:100%;border:1px solid #d7d5d3;border-radius:12px;padding:14px 15px;font:inherit;font-weight:400;font-size:15px;color:#161619;background:#fafafa;outline:none}
+.site-admin input:focus{border-color:#9b6b54;box-shadow:0 0 0 3px #b7532c18}
+.site-admin button{background:#202024;color:#fff;border:0;border-radius:999px;padding:15px 24px;font:inherit;font-size:15px;cursor:pointer}.site-admin button:disabled{opacity:.55;cursor:wait}
+.site-admin output{min-height:20px;color:#555;font-size:13px;line-height:1.4}

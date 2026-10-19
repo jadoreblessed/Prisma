@@ -22,18 +22,28 @@ const money = (value: number | null) => value === null ? '—' : new Intl.Number
   style: 'currency', currency: 'USD', maximumFractionDigits: 2,
 }).format(value);
 
+const tokenAmount = (raw: string) => {
+  const amount = Number(raw);
+  if (!Number.isFinite(amount)) return raw;
+  if (amount > 0 && amount < 0.000001) return '<0.000001';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: amount >= 0.01 ? 2 : 0,
+    maximumFractionDigits: amount >= 0.01 ? 2 : 6,
+  }).format(amount);
+};
+
 function PositionAssets({ title, items }: { title: string; items: PositionAsset[] }) {
   if (!items.length) return null;
   return <div className="product-live-position__assets">
     <span>{title}</span>
     {items.map(item => <div key={item.mint}>
-      <b>{item.amount} {item.symbol}</b><small>{money(item.value)}</small>
+      <b title={`${item.amount} ${item.symbol}`}>{tokenAmount(item.amount)} {item.symbol}</b><small>{money(item.value)}</small>
     </div>)}
   </div>;
 }
 
-export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: string; wallet?: string; onConnect: () => Promise<void> }) {
-  const [borrowAsset, setBorrowAsset] = useState<'USDC' | 'USDG'>('USDG');
+export default function LiveMarketInfo({ asset, wallet, onConnect, borrowAssets }: { asset: string; wallet?: string; onConnect: () => Promise<void>; borrowAssets?: Array<'USDC' | 'USDG'> }) {
+  const [borrowAsset, setBorrowAsset] = useState<'USDC' | 'USDG'>(borrowAssets?.includes('USDG') ? 'USDG' : 'USDC');
   const [market, setMarket] = useState<LiveMarket | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [position, setPosition] = useState<LivePosition | null>(null);
@@ -68,7 +78,7 @@ export default function LiveMarketInfo({ asset, wallet, onConnect }: { asset: st
       .finally(() => { if (active) setPositionLoading(false); });
     return () => { active = false; };
   }, [asset, borrowAsset, wallet, refresh]);
-  const selector = <div className="market-tabs" role="group" aria-label="Borrow asset">{(['USDG', 'USDC'] as const).map(symbol =>
+  const selector = <div className="market-tabs" role="group" aria-label="Borrow asset">{(borrowAssets || ['USDG', 'USDC']).map(symbol =>
     <button type="button" key={symbol} className={borrowAsset === symbol ? 'active' : ''} onClick={() => setBorrowAsset(symbol)}>{symbol}</button>)}</div>;
   if (!market || market.borrowSymbol !== borrowAsset) return <div className="product-live-info" role="status">
     {selector}
